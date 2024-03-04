@@ -126,7 +126,7 @@ include_directories(
 )
 
 ## Declare a C++ library
-add_library(${PROJECT_NAME}_controllers src/laserprocessing.cpp) # base class
+add_library(${PROJECT_NAME}_controllers src/laserprocessing.cpp src/pathplanning.cpp) # base class
 #   src/${PROJECT_NAME}/artbot_code.cpp
 # )
 
