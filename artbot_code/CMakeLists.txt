@@ -20,6 +20,10 @@ find_package(catkin REQUIRED COMPONENTS
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3 REQUIRED)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -Wdeprecated-declarations")
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+message ( STATUS " CMake C++ FLAGS ${CMAKE_CXX_FLAGS}")
+
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -126,7 +130,7 @@ include_directories(
 )
 
 ## Declare a C++ library
-add_library(${PROJECT_NAME}_controllers src/laserprocessing.cpp src/pathplanning.cpp) # base class
+add_library(${PROJECT_NAME} src/laserprocessing.cpp src/pathplanning.cpp) # base class
 #   src/${PROJECT_NAME}/artbot_code.cpp
 # )
 
@@ -152,7 +156,7 @@ add_executable(${PROJECT_NAME}_node src/main.cpp src/sample.cpp)
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(${PROJECT_NAME}_node
-target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${PROJECT_NAME}_controllers)
+target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${PROJECT_NAME})
 #   ${catkin_LIBRARIES}
 # )
 
