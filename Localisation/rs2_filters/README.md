@@ -54,7 +54,7 @@ gedit ~/catkin_ws/src/turtlebot3/turtlebot3_navigation/launch/amcl.launch
 #### Terminal:
 ```Bash
 export TURTLEBOT3_MODEL=waffle
-roslaunch rs_gazebo_world turtlebot3_marker_V2.launch
+roslaunch rs2_gazebo_world turtlebot3_marker_ver7.launch
 
 export TURTLEBOT3_MODEL=waffle
 roslaunch turtlebot3_slam turtlebot3_slam.launch slam_methods:=gmapping
@@ -72,7 +72,7 @@ export TURTLEBOT3_MODEL=waffle
 roslaunch rs_gazebo_world turtlebot3_marker_V2.launch
 
 export TURTLEBOT3_MODEL=waffle
-roslaunch turtlebot3_navigation turtlebot3_navigation.launch map_file:=$HOME/catkin_ws/src/RS1-ProjectRover/examples/rs_V2_map.yaml
+roslaunch turtlebot3_navigation turtlebot3_navigation.launch map_file:=$HOME/catkin_ws/src/rs2_art_gallery_robot/examples/rs2_V3_map.yaml
 
 export TURTLEBOT3_MODEL=waffle
 roslaunch turtlebot3_teleop turtlebot3_teleop_key.launch
