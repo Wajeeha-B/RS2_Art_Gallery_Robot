@@ -28,7 +28,7 @@
  *  This information is used to generate an input for the control or the Turtlebot to follow the AR tag.
  *  \author    Ashton Powell
  *  \version   1.00
- *  \date      2023-10-29
+ *  \date      2024-XX-XX
  */
 class Sample
 {
@@ -51,10 +51,83 @@ public:
   /// The data is then used to publish input to move the TurtleBot, causing new data to be generated on its updated position and perspective.
   void seperateThread();
 
+  /// @brief request service callback for starting and stopping the mission and Turtlebot's movement.
+  ///
+  /// @param [in] req The request, a boolean value where true means the mission is in progress and false stops the mission.
+  /// @param [in] res The response, a boolean and string value indicating if starting the mission was successful.
+  ///
+  /// @return bool - Will return true to indicate the request succeeded.
+  bool request(std_srvs::SetBool::Request  &req,
+               std_srvs::SetBool::Response &res);
+  
+  /// @brief Getter for distance to be travelled to reach goal, updates as the platform moves to current goal.
+  ///
+  /// @param [in] goal a geometry_msgs::Point that is the current goal in x,y,z for the Turtlebot.
+  /// @param [in] robot a geometry_msgs::Pose that is the current position and orientation of the Turtlebot.
+  ///
+  /// @return distance of the goal to the Turtlebot in a straight line [m].
+  double DistanceToGoal(geometry_msgs::Point goal, geometry_msgs::Pose robot);
+
+  /// @brief Getter for distance between consecutive goals
+  ///
+  /// @param [in] goal1 a geometry_msgs::Point that is the first goal in x,y,z for the Turtlebot.
+  /// @param [in] goal2 a geometry_msgs::Point that is the second goal in x,y,z for the Turtlebot.
+  ///
+  /// @return distance between consecutive goals in a straight line [m].
+  double DistanceBetweenGoals(geometry_msgs::Point goal1, geometry_msgs::Point goal2);
+
+  /// @brief Gets the angle of the required turn to follow a straight line towards the next goal.
+  ///
+  /// @param [in] goal a geometry_msgs::Point that is the current goal in x,y,z for the TurtleBot.
+  /// @param [in] robot a geometry_msgs::Pose that is the current position and orientation of the TurtleBot.
+  ///
+  /// @return a double value for the angle of the required turn of the TurtleBot [rad].
+  double GetSteering(geometry_msgs::Point goal, geometry_msgs::Pose robot);
+
+  /// @brief Laser Callback from the laser sensor's reference
+  ///
+  /// @param [in|out] msg sensor_msgs::LaserScanConstPtr - the laser scan data
+  /// @note This function and the declaration are ROS specific
+  void laserCallback(const sensor_msgs::LaserScanConstPtr& msg);
+
+  // /// @brief Odometry Callback from the world reference of the TurtleBot
+  // ///
+  // /// @param [in|out] msg nav_msgs::OdometryConstPtr - The odometry message
+  // /// @note This function and the declaration are ROS specific
+  // void odomCallback(const nav_msgs::OdometryConstPtr& msg);
+  
+private:
   //! Node handle for communication
   ros::NodeHandle nh_;
+  //! Driving command publisher
+  ros::Publisher pubDrive_;
+  //! Laser scan subscriber, uses LaserCallback
+  ros::Subscriber sub1_;
+  //! Mission service, starts and stops the mission
+  ros::ServiceServer service1_;
+  
+  //! Pointer to Laser Object
+  LaserProcessing* laserProcessingPtr_;
+
+  //! Stores the laser data from the LIDAR scanner
+  sensor_msgs::LaserScan laserData_;
+  //! Mutex to lock laserData_
+  std::mutex laserDataMtx_;
+  //! Stores the position and orientation of the robot
+  geometry_msgs::Pose robotPose_;
+  //! Mutex to lock robotPose_
+  std::mutex robotPoseMtx_;
+
   //! Flag for whether the car is moving and the mission is active
   std::atomic<bool> running_;
+  //! Stores a goal for the robot to move towards
+  geometry_msgs::Point goal_;
+  //! The offset between the reference of the TurtleBot and the reference of the laser scanner
+  double SENSOR_OFFSET_ = 0.12;
+  //! The stop distance to stop the following TurtleBot before it collides with the guiding TurtleBot
+  double STOP_DISTANCE_ = 0.3;
+  //! Boolean for stopping the TurtleBot when it becomes too close to the guiding TurtleBot
+  bool tooClose_;
 };
 
 #endif // SAMPLE_H
