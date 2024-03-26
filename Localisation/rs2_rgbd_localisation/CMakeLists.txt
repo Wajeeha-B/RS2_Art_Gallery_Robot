@@ -8,6 +8,10 @@ project(rs2_rgbd_localisation)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+<<<<<<< HEAD
+=======
+  apriltag_ros
+>>>>>>> 04e68caa590421221478ab826262c08d8ccf9d81
   geometry_msgs
   roscpp
   rospy
@@ -108,7 +112,11 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES rs2_rgbd_localisation
+<<<<<<< HEAD
 #  CATKIN_DEPENDS geometry_msgs roscpp rospy sensor_msgs tf
+=======
+#  CATKIN_DEPENDS apriltag_ros geometry_msgs roscpp rospy sensor_msgs tf
+>>>>>>> 04e68caa590421221478ab826262c08d8ccf9d81
 #  DEPENDS system_lib
 )
 
