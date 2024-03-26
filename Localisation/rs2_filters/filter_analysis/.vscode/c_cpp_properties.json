@@ -1,0 +1,25 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/main/catkin_ws/install_isolated/include/**",
+        "/home/main/catkin_ws/devel_isolated/gazebo_tf/include/**",
+        "/home/main/catkin_ws/devel_isolated/apriltag_ros/include/**",
+        "/opt/ros/noetic/include/**",
+        "/home/main/catkin_ws/devel_isolated/apriltag/include/**",
+        "/home/main/catkin_ws/src/usb_cam/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

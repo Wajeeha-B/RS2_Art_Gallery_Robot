@@ -1,0 +1,39 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/kenny/catkin_ws/devel/include/**",
+        "/opt/ros/noetic/include/**",
+        "/home/kenny/catkin_ws/src/apriltag_ros/apriltag_ros/include/**",
+        "/home/kenny/catkin_ws/src/RS1_Tutorial/ar_track_alvar/ar_track_alvar/include/**",
+        "/home/kenny/catkin_ws/src/cloud_upload/include/**",
+        "/home/kenny/catkin_ws/src/nextore_packages/controller_manager/include/**",
+        "/home/kenny/catkin_ws/src/data_gen/include/**",
+        "/home/kenny/catkin_ws/src/marker_server/include/**",
+        "/home/kenny/catkin_ws/src/nextore/nextore_compute/include/**",
+        "/home/kenny/catkin_ws/src/nextore/nextore_control/include/**",
+        "/home/kenny/catkin_ws/src/nextore/nextore_gui/include/**",
+        "/home/kenny/catkin_ws/src/property_panel/include/**",
+        "/home/kenny/catkin_ws/src/RS1-ProjectRover/rs_odom_noise/include/**",
+        "/home/kenny/catkin_ws/src/RS1-ProjectRover/rs_rgbd_localisation/include/**",
+        "/home/kenny/catkin_ws/src/nextore_packages/tf2_sensor_msgs/include/**",
+        "/home/kenny/catkin_ws/src/RS1_Tutorial/turtlebot3_simulations/turtlebot3_fake/include/**",
+        "/home/kenny/catkin_ws/src/RS1_Tutorial/turtlebot3_simulations/turtlebot3_gazebo/include/**",
+        "/home/kenny/catkin_ws/src/RS1_Tutorial/turtlebot3/turtlebot3_slam/include/**",
+        "/home/kenny/catkin_ws/src/RS1_Tutorial/usb_cam/include/**",
+        "/home/kenny/catkin_ws/src/nextore_packages/velodyne_simulator/velodyne_gazebo_plugins/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
