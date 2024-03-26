@@ -51,6 +51,7 @@
   <buildtool_depend>catkin</buildtool_depend>
 <<<<<<< HEAD
 =======
+>>>>>>> 04e68caa590421221478ab826262c08d8ccf9d81
   <build_depend>geometry_msgs</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>rospy</build_depend>
