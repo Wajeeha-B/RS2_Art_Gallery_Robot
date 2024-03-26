@@ -120,6 +120,8 @@ private:
 
   //! Flag for whether the car is moving and the mission is active
   std::atomic<bool> running_;
+  //! Flag to prevent the terminal from being flooded with messages
+  bool stateChange_;
   //! Stores a goal for the robot to move towards
   geometry_msgs::Point goal_;
   //! The offset between the reference of the TurtleBot and the reference of the laser scanner

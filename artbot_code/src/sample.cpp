@@ -12,12 +12,12 @@ using std::endl;
 Sample::Sample(ros::NodeHandle nh) :
     //Setting the default value for some variables
     nh_(nh), running_(false), laserProcessingPtr_(nullptr),
-    tooClose_(false)
+    tooClose_(false), stateChange_(false)
 {
     //Subscribing to the laser sensor
     sub1_ = nh_.subscribe("/scan", 100, &Sample::laserCallback,this);
     //Publishing the driving commands
-    pubDrive_ = nh.advertise<geometry_msgs::Twist>("/cmd_vel",3,false);
+    pubDrive_ = nh.advertise<geometry_msgs::Twist>("cmd_vel",3,false);
     //Service to enable the robot to start and stop from command line input
     service1_ = nh_.advertiseService("/mission", &Sample::request,this);
     
@@ -60,7 +60,7 @@ void Sample::laserCallback(const sensor_msgs::LaserScanConstPtr& msg)
 
 void Sample::seperateThread() {
     //Waits for the data to be populated from ROS
-    while(laserData_.range_min+laserData_.range_max == 0.0);//||
+    // while(laserData_.range_min+laserData_.range_max == 0.0);//||
         //   robotPose_.orientation.w+robotPose_.orientation.x+
         //   robotPose_.orientation.y+robotPose_.orientation.z == 0.0);
 
@@ -108,7 +108,10 @@ void Sample::seperateThread() {
             drive.angular.y = 0.0;
             if (angle > 0.001 || angle < -0.001) drive.angular.z = angle; //sends the angle of turn required
             else drive.angular.z = 0.0;
-            ROS_INFO_STREAM("TurtleBot is going forwards");
+            if(stateChange_){
+                ROS_INFO_STREAM("TurtleBot is going forwards");
+                stateChange_ = false;
+            }
         }
         //Stops the TurtleBot
         else{
@@ -135,7 +138,10 @@ void Sample::seperateThread() {
                 drive.angular.y = 0.0;
                 drive.angular.z = 0.0;
             }
-            ROS_INFO_STREAM("TurtleBot is stopped");
+            if(stateChange_){
+                ROS_INFO_STREAM("TurtleBot is stopped");
+                stateChange_ = false;
+            }
         }
         // geometry_msgs::Twist drive;
         // drive.linear.x = 0.5; //sends it forward
@@ -165,6 +171,7 @@ bool Sample::request(std_srvs::SetBool::Request  &req,
     {
         ROS_INFO_STREAM("Requested: Start mission");
         running_ = true; //start the robot if there is a goal
+        stateChange_ = true;
         res.success = true;
         res.message = "The Turtlebot has started it's mission";
 
@@ -174,6 +181,7 @@ bool Sample::request(std_srvs::SetBool::Request  &req,
     {
         ROS_INFO_STREAM("Requested: Stop mission");
         res.success = true;
+        stateChange_ = true;
         res.message = "Turtlebot stopping";
         running_ = false;
     }

@@ -18,7 +18,7 @@ int main(int argc, char **argv)
 
   ros::spin();
 
-  // ros::shutdown();
+  ros::shutdown();
 
   //Joins the thread when the program has concluded
   t.join();
