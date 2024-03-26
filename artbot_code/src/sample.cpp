@@ -60,9 +60,9 @@ void Sample::laserCallback(const sensor_msgs::LaserScanConstPtr& msg)
 
 void Sample::seperateThread() {
     //Waits for the data to be populated from ROS
-    while(laserData_.range_min+laserData_.range_max == 0.0 ||
-          robotPose_.orientation.w+robotPose_.orientation.x+
-          robotPose_.orientation.y+robotPose_.orientation.z == 0.0);
+    while(laserData_.range_min+laserData_.range_max == 0.0);//||
+        //   robotPose_.orientation.w+robotPose_.orientation.x+
+        //   robotPose_.orientation.y+robotPose_.orientation.z == 0.0);
 
     //Limits the execution of this code to 5Hz
     ros::Rate rate_limiter(5.0);
@@ -101,14 +101,14 @@ void Sample::seperateThread() {
         //Creates the variable for driving the TurtleBot
         geometry_msgs::Twist drive;
         if(running_ && !tooClose_){
-            drive.linear.x = 0.1; //sends it forward
+            drive.linear.x = 0.5; //sends it forward
             drive.linear.y = 0.0;
             drive.linear.z = 0.0;
             drive.angular.x = 0.0;
             drive.angular.y = 0.0;
             if (angle > 0.001 || angle < -0.001) drive.angular.z = angle; //sends the angle of turn required
             else drive.angular.z = 0.0;
-            ROS_INFO("TurtleBot is going forwards");
+            ROS_INFO_STREAM("TurtleBot is going forwards");
         }
         //Stops the TurtleBot
         else{
@@ -135,9 +135,16 @@ void Sample::seperateThread() {
                 drive.angular.y = 0.0;
                 drive.angular.z = 0.0;
             }
-            ROS_INFO("TurtleBot is stopped");
+            ROS_INFO_STREAM("TurtleBot is stopped");
         }
-
+        // geometry_msgs::Twist drive;
+        // drive.linear.x = 0.5; //sends it forward
+        // drive.linear.y = 0.0;
+        // drive.linear.z = 0.0;
+        // drive.angular.x = 0.0;
+        // drive.angular.y = 0.0;
+        // drive.angular.z = 0.0;
+        // ROS_INFO_STREAM("TurtleBot is moving");
         //Publishes the drive variable to control the TurtleBot
         pubDrive_.publish(drive);
 
