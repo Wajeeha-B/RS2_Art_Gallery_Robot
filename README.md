@@ -28,5 +28,5 @@ e.g. rs2_gazebo
 
 ## Notes before starting the sim
      Make sure to change the directory of rs2_map_V3.yaml file from:
-     home\wajeeha\catkin_ws\src\rs2_art_gallery_robot\examples
+     home/wajeeha/catkin_ws/src/rs2_art_gallery_robot/examples
      to your own directory (Replace wajeeha to <your name>)
