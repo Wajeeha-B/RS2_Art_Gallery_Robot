@@ -17,7 +17,7 @@ Sample::Sample(ros::NodeHandle nh) :
     //Subscribing to the laser sensor
     sub1_ = nh_.subscribe("/scan", 100, &Sample::laserCallback,this);
     //Publishing the driving commands
-    pubDrive_ = nh.advertise<geometry_msgs::Twist>("cmd_vel",3,false);
+    pubDrive_ = nh.advertise<geometry_msgs::Twist>("/cmd_vel",3,false);
     //Service to enable the robot to start and stop from command line input
     service1_ = nh_.advertiseService("/mission", &Sample::request,this);
     
@@ -60,7 +60,7 @@ void Sample::laserCallback(const sensor_msgs::LaserScanConstPtr& msg)
 
 void Sample::seperateThread() {
     //Waits for the data to be populated from ROS
-    // while(laserData_.range_min+laserData_.range_max == 0.0);//||
+    while(laserData_.range_min+laserData_.range_max == 0.0);//||
         //   robotPose_.orientation.w+robotPose_.orientation.x+
         //   robotPose_.orientation.y+robotPose_.orientation.z == 0.0);
 
@@ -98,6 +98,8 @@ void Sample::seperateThread() {
         //Otherwise the robot is not too close
         else tooClose_ = false;
 
+        tooClose_ = false;
+
         //Creates the variable for driving the TurtleBot
         geometry_msgs::Twist drive;
         if(running_ && !tooClose_){
@@ -120,15 +122,16 @@ void Sample::seperateThread() {
                 drive.linear.y = 0.0;
                 drive.linear.z = 0.0;
 
-                // Determine the rotation direction based on the angle of the minimum distance
-                if (rangeBearing.second >= 0 && rangeBearing.second <= 90) {
-                    // Turn 90 degrees to the right
-                    drive.angular.z = -M_PI / 2;
-                }
-                else if (rangeBearing.second >= 270 && rangeBearing.second <= 359) {
-                    // Turn 90 degrees to the left
-                    drive.angular.z = M_PI / 2;
-                }
+                // // Determine the rotation direction based on the angle of the minimum distance
+                // if (rangeBearing.second >= 0 && rangeBearing.second <= 90) {
+                //     // Turn 90 degrees to the right
+                //     drive.angular.z = -M_PI / 2;
+                // }
+                // else if (rangeBearing.second >= 270 && rangeBearing.second <= 359) {
+                //     // Turn 90 degrees to the left
+                //     drive.angular.z = M_PI / 2;
+                // }
+                ROS_INFO_STREAM("TurtleBot is turning");
             }
             else {
                 drive.linear.x = 0.0;
@@ -151,7 +154,7 @@ void Sample::seperateThread() {
         // drive.angular.y = 0.0;
         // drive.angular.z = 0.0;
         // ROS_INFO_STREAM("TurtleBot is moving");
-        //Publishes the drive variable to control the TurtleBot
+        // Publishes the drive variable to control the TurtleBot
         pubDrive_.publish(drive);
 
         //We have a rate timer, this sleep here is needed to ensure it stops and sleeps 

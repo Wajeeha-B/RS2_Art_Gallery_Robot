@@ -16,9 +16,9 @@
  *  cone segments, finding distances based on angles, calculating turns, and determining 
  *  the magnitude of turns.
  *  @sa Sample
- *  \author    Ashton Powell, Jacinta Kuessner
+ *  \author    
  *  \version   1.00
- *  \date      31/10/23
+ *  \date      XX/XX/24
  */
 
 class LaserProcessing
@@ -27,6 +27,11 @@ public:
   /// @brief Constructor for laser processing
   /// @param [in] laserScan - laserScan to be processed
   LaserProcessing(sensor_msgs::LaserScan laserScan);
+
+  /// @brief Getter for distance and angle to the nearest obstacle
+  ///
+  /// @return a pair for the doubles distance and the corresponding angle
+  std::pair<double, double> MinDistAngle();
 
 private:
     //! Stores the laser scan data
