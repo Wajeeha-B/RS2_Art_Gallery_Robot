@@ -154,6 +154,7 @@ void Sample::seperateThread() {
         // drive.angular.y = 0.0;
         // drive.angular.z = 0.0;
         // ROS_INFO_STREAM("TurtleBot is moving");
+        
         // Publishes the drive variable to control the TurtleBot
         pubDrive_.publish(drive);
 

@@ -16,5 +16,5 @@ std::pair<double, double> LaserProcessing::MinDistAngle(){
     distAngle.first = 0.0;
     distAngle.second = 0.0;
 
-    return distAngle
+    return distAngle;
 }
