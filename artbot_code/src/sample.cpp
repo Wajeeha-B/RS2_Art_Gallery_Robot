@@ -12,10 +12,12 @@ using std::endl;
 Sample::Sample(ros::NodeHandle nh) :
     //Setting the default value for some variables
     nh_(nh), running_(false), laserProcessingPtr_(nullptr),
-    tooClose_(false), stateChange_(false)
+    tooClose_(false), stateChange_(true)
 {
     //Subscribing to the laser sensor
     sub1_ = nh_.subscribe("/scan", 100, &Sample::laserCallback,this);
+    //Subscribing to odometry of the robot
+    sub2_ = nh_.subscribe("/odom", 100, &Sample::odomCallback,this);
     //Publishing the driving commands
     pubDrive_ = nh.advertise<geometry_msgs::Twist>("/cmd_vel",3,false);
     //Service to enable the robot to start and stop from command line input
@@ -50,13 +52,13 @@ void Sample::laserCallback(const sensor_msgs::LaserScanConstPtr& msg)
     laserData_ = *msg; // We store a copy of the LaserScan in laserData_
 }
 
-// //A callback for odometry
-// void Sample::odomCallback(const nav_msgs::OdometryConstPtr &msg)
-// {
-//     geometry_msgs::Pose pose = msg->pose.pose;
-//     std::unique_lock<std::mutex> lck(robotPoseMtx_); // Locks the data for the robotPose to be saved
-//     robotPose_ = pose; // We copy the pose here
-// }
+//A callback for odometry
+void Sample::odomCallback(const nav_msgs::OdometryConstPtr &msg)
+{
+    geometry_msgs::Pose pose = msg->pose.pose;
+    std::unique_lock<std::mutex> lck(robotPoseMtx_); // Locks the data for the robotPose to be saved
+    robotPose_ = pose; // We copy the pose here
+}
 
 void Sample::seperateThread() {
     //Waits for the data to be populated from ROS
@@ -78,12 +80,8 @@ void Sample::seperateThread() {
         lck2.unlock();
         lck1.unlock();
 
-        //Gets the angle of the laser scanner using the x value of the image
-        double angle = 0;
-
         // ROS_INFO("AngleMin= %f\n AngleMax= %f\n AngleIncrement= %f", laserData_.angle_min, laserData_.angle_max, laserData_.angle_increment);
         
-        double angle_of_min_distance;
         std::pair<double, double> rangeBearing;
         rangeBearing.first = 0.0;
         rangeBearing.second = 0.0;
@@ -99,17 +97,52 @@ void Sample::seperateThread() {
         else tooClose_ = false;
 
         tooClose_ = false;
+        
+        // goals_ = pathPlanning.GetGoals();
+        
+        std::vector<geometry_msgs::Point> fakeGoals;
+        geometry_msgs::Point fakeGoal;
+        fakeGoal.x = 10.0;
+        fakeGoal.y = 5.0;
+        fakeGoals.push_back(fakeGoal);
+        
+        goals_ = fakeGoals;
+        goal_ = goals_.front();
 
         //Creates the variable for driving the TurtleBot
         geometry_msgs::Twist drive;
         if(running_ && !tooClose_){
-            drive.linear.x = 0.5; //sends it forward
-            drive.linear.y = 0.0;
-            drive.linear.z = 0.0;
-            drive.angular.x = 0.0;
-            drive.angular.y = 0.0;
-            if (angle > 0.001 || angle < -0.001) drive.angular.z = angle; //sends the angle of turn required
-            else drive.angular.z = 0.0;
+            // drive.linear.x = 0.5; //sends it forward
+            // drive.linear.y = 0.0;
+            // drive.linear.z = 0.0;
+            // drive.angular.x = 0.0;
+            // drive.angular.y = 0.0;
+            // if (angle > 0.001 || angle < -0.001) drive.angular.z = angle; //sends the angle of turn required
+            // else drive.angular.z = 0.0;
+
+            if(trajMode_ == 0){
+                double goal_angle = GetGoalAngle(goal_,robotPose_);
+                // ROS_INFO("steering = %f", fabs(goal_angle));
+                if(fabs(goal_angle) > 0.1){
+                    goal_angle = GetGoalAngle(goal_,robotPose_);
+                    drive.linear.x = 0.0;
+                    drive.linear.y = 0.0;
+                    drive.linear.z = 0.0;
+                    drive.angular.x = 0.0;
+                    drive.angular.y = 0.0;
+                    drive.angular.z = goal_angle*STEERING_SENS_;
+                    ROS_INFO("steering = %f", drive.angular.z);
+                }
+                else{
+                    drive.linear.x = 0.5;
+                    drive.linear.y = 0.0;
+                    drive.linear.z = 0.0;
+                    drive.angular.x = 0.0;
+                    drive.angular.y = 0.0;
+                    drive.angular.z = 0.0;
+                    ROS_INFO("driving = %f", drive.linear.x);
+                }
+            }
             if(stateChange_){
                 ROS_INFO_STREAM("TurtleBot is going forwards");
                 stateChange_ = false;
@@ -117,30 +150,13 @@ void Sample::seperateThread() {
         }
         //Stops the TurtleBot
         else{
-            if (rangeBearing.first < STOP_DISTANCE_) {
-                drive.linear.x = 0.0;  // Stop any forward motion
-                drive.linear.y = 0.0;
-                drive.linear.z = 0.0;
+            drive.linear.x = 0.0;
+            drive.linear.y = 0.0;
+            drive.linear.z = 0.0;
+            drive.angular.x = 0.0;
+            drive.angular.y = 0.0;
+            drive.angular.z = 0.0;
 
-                // // Determine the rotation direction based on the angle of the minimum distance
-                // if (rangeBearing.second >= 0 && rangeBearing.second <= 90) {
-                //     // Turn 90 degrees to the right
-                //     drive.angular.z = -M_PI / 2;
-                // }
-                // else if (rangeBearing.second >= 270 && rangeBearing.second <= 359) {
-                //     // Turn 90 degrees to the left
-                //     drive.angular.z = M_PI / 2;
-                // }
-                ROS_INFO_STREAM("TurtleBot is turning");
-            }
-            else {
-                drive.linear.x = 0.0;
-                drive.linear.y = 0.0;
-                drive.linear.z = 0.0;
-                drive.angular.x = 0.0;
-                drive.angular.y = 0.0;
-                drive.angular.z = 0.0;
-            }
             if(stateChange_){
                 ROS_INFO_STREAM("TurtleBot is stopped");
                 stateChange_ = false;
@@ -210,7 +226,7 @@ double Sample::DistanceBetweenGoals(geometry_msgs::Point goal1, geometry_msgs::P
 }
 
 //Gets the steering value
-double Sample::GetSteering(geometry_msgs::Point goal, geometry_msgs::Pose robot)
+double Sample::GetGoalAngle(geometry_msgs::Point goal, geometry_msgs::Pose robot)
 {
     /*-----Chord Length-----*/
     double dx = goal.x-robot.position.x;    //Difference in x between the robot's current position and the goal
@@ -220,4 +236,10 @@ double Sample::GetSteering(geometry_msgs::Point goal, geometry_msgs::Pose robot)
     /*-----Alpha Angle-----*/
     double AA = atan2(dy, dx)-tf::getYaw(robot.orientation);  //Alpha angle made with angle formed from chord from the yaw angle of the robot
     return AA;
+}
+
+double Sample::fabs(double x)
+{
+    if(x < 0) return -x;
+    else return x;
 }

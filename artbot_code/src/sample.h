@@ -82,7 +82,9 @@ public:
   /// @param [in] robot a geometry_msgs::Pose that is the current position and orientation of the TurtleBot.
   ///
   /// @return a double value for the angle of the required turn of the TurtleBot [rad].
-  double GetSteering(geometry_msgs::Point goal, geometry_msgs::Pose robot);
+  double GetGoalAngle(geometry_msgs::Point goal, geometry_msgs::Pose robot);
+
+  double fabs(double x);
 
   /// @brief Laser Callback from the laser sensor's reference
   ///
@@ -90,11 +92,11 @@ public:
   /// @note This function and the declaration are ROS specific
   void laserCallback(const sensor_msgs::LaserScanConstPtr& msg);
 
-  // /// @brief Odometry Callback from the world reference of the TurtleBot
-  // ///
-  // /// @param [in|out] msg nav_msgs::OdometryConstPtr - The odometry message
-  // /// @note This function and the declaration are ROS specific
-  // void odomCallback(const nav_msgs::OdometryConstPtr& msg);
+  /// @brief Odometry Callback from the world reference of the TurtleBot
+  ///
+  /// @param [in|out] msg nav_msgs::OdometryConstPtr - The odometry message
+  /// @note This function and the declaration are ROS specific
+  void odomCallback(const nav_msgs::OdometryConstPtr& msg);
   
 private:
   //! Node handle for communication
@@ -103,6 +105,8 @@ private:
   ros::Publisher pubDrive_;
   //! Laser scan subscriber, uses LaserCallback
   ros::Subscriber sub1_;
+  //! Robot odometry subscriber, uses OdomCallback
+  ros::Subscriber sub2_;
   //! Mission service, starts and stops the mission
   ros::ServiceServer service1_;
   
@@ -124,12 +128,17 @@ private:
   bool stateChange_;
   //! Stores a goal for the robot to move towards
   geometry_msgs::Point goal_;
+  //! Stores a series of goals in the order they occur
+  std::vector<geometry_msgs::Point> goals_;
   //! The offset between the reference of the TurtleBot and the reference of the laser scanner
   double SENSOR_OFFSET_ = 0.12;
   //! The stop distance to stop the following TurtleBot before it collides with the guiding TurtleBot
   double STOP_DISTANCE_ = 0.3;
   //! Boolean for stopping the TurtleBot when it becomes too close to the guiding TurtleBot
+  double STEERING_SENS_ = 1.0;
   bool tooClose_;
+
+  int trajMode_ = 0;
 };
 
 #endif // SAMPLE_H
