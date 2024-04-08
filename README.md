@@ -37,7 +37,7 @@ e.g. rs2_gazebo
 ### Terminal 1 (Recording the bag)
      cd  ~/catkin_ws/src/rs2_art_gallery_robot/artbot_code/src/bags
      rosbag record /scan -l 10
-
+**Close the simulation**
 ### Terminal 1 (Open Roscore)
      roscore
      
@@ -46,7 +46,7 @@ e.g. rs2_gazebo
      rosbag play -r 0.1 --clock -l NAME_OF_BAG.bag
 
 ## Useful Commands
-     ### Reset the Gazebo World to its initial state
+### Reset the Gazebo World to its initial state
      rosservice call /gazebo/reset_world "{}"
      
 ## Edits before starting the sim (Everyone)
