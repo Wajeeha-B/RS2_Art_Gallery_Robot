@@ -85,7 +85,7 @@ void Sample::seperateThread() {
         std::pair<double, double> rangeBearing;
         rangeBearing.first = 0.0;
         rangeBearing.second = 0.0;
-        // rangeBearing = laserProcessing.MinDistAngle(STOP_DISTANCE_);
+        // rangeBearing = laserProcessing.MinDistAngle();
 
         //Gets the distance from the angle
         double dist = 0;
