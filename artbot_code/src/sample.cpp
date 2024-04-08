@@ -92,7 +92,10 @@ void Sample::seperateThread() {
         // dist = laserProcessing.FindDistance(angle);
 
         //If the distance is less than the stop distance or more than the max value of an int (an invalid reading) the robot should stop
-        if(dist < STOP_DISTANCE_ || dist > 2147483647 || rangeBearing.first < STOP_DISTANCE_) tooClose_ = true;
+        if(dist < STOP_DISTANCE_ || dist > 2147483647 || rangeBearing.first < STOP_DISTANCE_){
+            tooClose_ = true;
+            ROS_INFO_STREAM("TurtleBot is too close to an obstacle!");
+        }
         //Otherwise the robot is not too close
         else tooClose_ = false;
 
@@ -101,10 +104,16 @@ void Sample::seperateThread() {
         // goals_ = pathPlanning.GetGoals();
         
         std::vector<geometry_msgs::Point> fakeGoals;
-        geometry_msgs::Point fakeGoal;
-        fakeGoal.x = 10.0;
-        fakeGoal.y = 5.0;
-        fakeGoals.push_back(fakeGoal);
+        int ARRAY_SIZE = 6;
+        double goal_arrayX[ARRAY_SIZE] = {2.0, 4.0,  7.0, 10.0, 8.0};
+        double goal_arrayY[ARRAY_SIZE] = {2.0, 0.0, -1.0, 1.0, 2.5};
+        
+        for(int i = 0; i < ARRAY_SIZE; i++){
+            geometry_msgs::Point fakeGoal;
+            fakeGoal.x = goal_arrayX[i];
+            fakeGoal.y = goal_arrayY[i];
+            fakeGoals.push_back(fakeGoal);
+        }
         
         goals_ = fakeGoals;
         goal_ = goals_.front();

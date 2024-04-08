@@ -135,7 +135,7 @@ private:
   //! The stop distance to stop the following TurtleBot before it collides with the guiding TurtleBot
   double STOP_DISTANCE_ = 0.3;
   //! Boolean for stopping the TurtleBot when it becomes too close to the guiding TurtleBot
-  double STEERING_SENS_ = 1.0;
+  double STEERING_SENS_ = 2.0;
   bool tooClose_;
 
   int trajMode_ = 0;
