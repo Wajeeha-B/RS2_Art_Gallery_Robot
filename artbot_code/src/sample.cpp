@@ -36,6 +36,9 @@ Sample::Sample(ros::NodeHandle nh) :
     goal_.x = 0.0;
     goal_.y = 0.0;
     goal_.z = 0.0;
+    // ROS_INFO_STREAM("Goal is reset!");
+
+    goalIdx_ = 0;
 }
 
 // We delete anything that needs removing here specifically
@@ -94,7 +97,7 @@ void Sample::seperateThread() {
         //If the distance is less than the stop distance or more than the max value of an int (an invalid reading) the robot should stop
         if(dist < STOP_DISTANCE_ || dist > 2147483647 || rangeBearing.first < STOP_DISTANCE_){
             tooClose_ = true;
-            ROS_INFO_STREAM("TurtleBot is too close to an obstacle!");
+            // ROS_INFO_STREAM("TurtleBot is too close to an obstacle!");
         }
         //Otherwise the robot is not too close
         else tooClose_ = false;
@@ -103,20 +106,43 @@ void Sample::seperateThread() {
         
         // goals_ = pathPlanning.GetGoals();
         
-        std::vector<geometry_msgs::Point> fakeGoals;
-        int ARRAY_SIZE = 6;
-        double goal_arrayX[ARRAY_SIZE] = {2.0, 4.0,  7.0, 10.0, 8.0};
-        double goal_arrayY[ARRAY_SIZE] = {2.0, 0.0, -1.0, 1.0, 2.5};
-        
-        for(int i = 0; i < ARRAY_SIZE; i++){
-            geometry_msgs::Point fakeGoal;
-            fakeGoal.x = goal_arrayX[i];
-            fakeGoal.y = goal_arrayY[i];
-            fakeGoals.push_back(fakeGoal);
+        if(goal_.x == 0.0 && goal_.y == 0.0 && goal_.z == 0.0){
+            std::vector<geometry_msgs::Point> fakeGoals;
+            // int ARRAY_SIZE = 6;
+            // double goal_arrayX[ARRAY_SIZE] = {2.0, 4.0,  7.0, 10.0,  8.0};
+            // double goal_arrayY[ARRAY_SIZE] = {-2.0, 0.0, 1.0, -1.0, -2.5};
+            int ARRAY_SIZE = 5;
+            double goal_arrayX[ARRAY_SIZE] = {0.3, 0.6, 0.3, 0.0};
+            double goal_arrayY[ARRAY_SIZE] = {0.3, 0.0, -0.3, 0.0};
+            
+            for(int i = 0; i+1 < ARRAY_SIZE; i++){
+                geometry_msgs::Point fakeGoal;
+                fakeGoal.x = goal_arrayX[i];
+                fakeGoal.y = goal_arrayY[i];
+                fakeGoals.push_back(fakeGoal);
+            }
+            
+            goals_ = fakeGoals;
+        }
+
+        else if(DistanceToGoal(goal_, robotPose_) < STOP_DISTANCE_ && (goalIdx_+1) < goals_.size()){
+            goalIdx_++;
         }
         
-        goals_ = fakeGoals;
-        goal_ = goals_.front();
+        // std::vector<geometry_msgs::Point> fakeGoals;
+        // geometry_msgs::Point fakeGoal;
+        // fakeGoal.x = 2.0;
+        // fakeGoal.y = 2.0;
+        // fakeGoals.push_back(fakeGoal);
+        // goals_ = fakeGoals;
+
+        goal_ = goals_.at(goalIdx_);
+
+        ROS_INFO("goal_: (%f, %f)", goal_.x, goal_.y);
+        ROS_INFO("Distance: %f", DistanceToGoal(goal_, robotPose_));
+        // for(int i = 0; i < goals_.size(); i++){
+        //     ROS_INFO("goals_: (%f, %f)", goals_.at(i).x, goals_.at(i).y);
+        // }
 
         //Creates the variable for driving the TurtleBot
         geometry_msgs::Twist drive;
@@ -143,7 +169,7 @@ void Sample::seperateThread() {
                     ROS_INFO("steering = %f", drive.angular.z);
                 }
                 else{
-                    drive.linear.x = 0.5;
+                    drive.linear.x = 0.2;
                     drive.linear.y = 0.0;
                     drive.linear.z = 0.0;
                     drive.angular.x = 0.0;
