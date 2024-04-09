@@ -28,10 +28,18 @@ public:
   /// @param [in] laserScan - laserScan to be processed
   LaserProcessing(sensor_msgs::LaserScan laserScan);
 
+// Pass 'Comprehending Sensor Data' Test
+  /// @brief Getter for distance and angle from default pose
+  ///
+  /// @return a pair for the doubles distance and the corresponding angle
+  std::pair<double, double> RangeAngle();
+
+
   /// @brief Getter for distance and angle to the nearest obstacle
   ///
   /// @return a pair for the doubles distance and the corresponding angle
   std::pair<double, double> MinDistAngle();
+
 
 private:
     //! Stores the laser scan data
