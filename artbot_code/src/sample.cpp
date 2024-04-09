@@ -121,7 +121,6 @@ void Sample::seperateThread() {
                 fakeGoal.y = goal_arrayY[i];
                 fakeGoals.push_back(fakeGoal);
             }
-            
             goals_ = fakeGoals;
         }
 
