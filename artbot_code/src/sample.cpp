@@ -146,37 +146,13 @@ void Sample::seperateThread() {
         //Creates the variable for driving the TurtleBot
         geometry_msgs::Twist drive;
         if(running_ && !tooClose_){
-            // drive.linear.x = 0.5; //sends it forward
-            // drive.linear.y = 0.0;
-            // drive.linear.z = 0.0;
-            // drive.angular.x = 0.0;
-            // drive.angular.y = 0.0;
-            // if (angle > 0.001 || angle < -0.001) drive.angular.z = angle; //sends the angle of turn required
-            // else drive.angular.z = 0.0;
+            drive.linear.x = 0.5; //sends it forward
+            drive.linear.y = 0.0;
+            drive.linear.z = 0.0;
+            drive.angular.x = 0.0;
+            drive.angular.y = 0.0;
+            drive.angular.z = 0.0;
 
-            if(trajMode_ == 0){
-                double goal_angle = GetGoalAngle(goal_,robotPose_);
-                // ROS_INFO("steering = %f", fabs(goal_angle));
-                if(fabs(goal_angle) > 0.1){
-                    goal_angle = GetGoalAngle(goal_,robotPose_);
-                    drive.linear.x = 0.0;
-                    drive.linear.y = 0.0;
-                    drive.linear.z = 0.0;
-                    drive.angular.x = 0.0;
-                    drive.angular.y = 0.0;
-                    drive.angular.z = goal_angle*STEERING_SENS_;
-                    ROS_INFO("steering = %f", drive.angular.z);
-                }
-                else{
-                    drive.linear.x = 0.2;
-                    drive.linear.y = 0.0;
-                    drive.linear.z = 0.0;
-                    drive.angular.x = 0.0;
-                    drive.angular.y = 0.0;
-                    drive.angular.z = 0.0;
-                    ROS_INFO("driving = %f", drive.linear.x);
-                }
-            }
             if(stateChange_){
                 ROS_INFO_STREAM("TurtleBot is going forwards");
                 stateChange_ = false;
