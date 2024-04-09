@@ -103,81 +103,17 @@ void Sample::seperateThread() {
         else tooClose_ = false;
 
         tooClose_ = false;
-        
-        // goals_ = pathPlanning.GetGoals();
-        
-        if(goal_.x == 0.0 && goal_.y == 0.0 && goal_.z == 0.0){
-            std::vector<geometry_msgs::Point> fakeGoals;
-            // int ARRAY_SIZE = 6;
-            // double goal_arrayX[ARRAY_SIZE] = {2.0, 4.0,  7.0, 10.0,  8.0};
-            // double goal_arrayY[ARRAY_SIZE] = {-2.0, 0.0, 1.0, -1.0, -2.5};
-            int ARRAY_SIZE = 5;
-            double goal_arrayX[ARRAY_SIZE] = {0.3, 0.6, 0.3, 0.0};
-            double goal_arrayY[ARRAY_SIZE] = {0.3, 0.0, -0.3, 0.0};
-            
-            for(int i = 0; i+1 < ARRAY_SIZE; i++){
-                geometry_msgs::Point fakeGoal;
-                fakeGoal.x = goal_arrayX[i];
-                fakeGoal.y = goal_arrayY[i];
-                fakeGoals.push_back(fakeGoal);
-            }
-            
-            goals_ = fakeGoals;
-        }
-
-        else if(DistanceToGoal(goal_, robotPose_) < STOP_DISTANCE_ && (goalIdx_+1) < goals_.size()){
-            goalIdx_++;
-        }
-        
-        // std::vector<geometry_msgs::Point> fakeGoals;
-        // geometry_msgs::Point fakeGoal;
-        // fakeGoal.x = 2.0;
-        // fakeGoal.y = 2.0;
-        // fakeGoals.push_back(fakeGoal);
-        // goals_ = fakeGoals;
-
-        goal_ = goals_.at(goalIdx_);
-
-        ROS_INFO("goal_: (%f, %f)", goal_.x, goal_.y);
-        ROS_INFO("Distance: %f", DistanceToGoal(goal_, robotPose_));
-        // for(int i = 0; i < goals_.size(); i++){
-        //     ROS_INFO("goals_: (%f, %f)", goals_.at(i).x, goals_.at(i).y);
-        // }
 
         //Creates the variable for driving the TurtleBot
         geometry_msgs::Twist drive;
         if(running_ && !tooClose_){
-            // drive.linear.x = 0.5; //sends it forward
-            // drive.linear.y = 0.0;
-            // drive.linear.z = 0.0;
-            // drive.angular.x = 0.0;
-            // drive.angular.y = 0.0;
-            // if (angle > 0.001 || angle < -0.001) drive.angular.z = angle; //sends the angle of turn required
-            // else drive.angular.z = 0.0;
+            drive.linear.x = 0.5; //sends it forward
+            drive.linear.y = 0.0;
+            drive.linear.z = 0.0;
+            drive.angular.x = 0.0;
+            drive.angular.y = 0.0;
+            drive.angular.z = 0.0;
 
-            if(trajMode_ == 0){
-                double goal_angle = GetGoalAngle(goal_,robotPose_);
-                // ROS_INFO("steering = %f", fabs(goal_angle));
-                if(fabs(goal_angle) > 0.1){
-                    goal_angle = GetGoalAngle(goal_,robotPose_);
-                    drive.linear.x = 0.0;
-                    drive.linear.y = 0.0;
-                    drive.linear.z = 0.0;
-                    drive.angular.x = 0.0;
-                    drive.angular.y = 0.0;
-                    drive.angular.z = goal_angle*STEERING_SENS_;
-                    ROS_INFO("steering = %f", drive.angular.z);
-                }
-                else{
-                    drive.linear.x = 0.2;
-                    drive.linear.y = 0.0;
-                    drive.linear.z = 0.0;
-                    drive.angular.x = 0.0;
-                    drive.angular.y = 0.0;
-                    drive.angular.z = 0.0;
-                    ROS_INFO("driving = %f", drive.linear.x);
-                }
-            }
             if(stateChange_){
                 ROS_INFO_STREAM("TurtleBot is going forwards");
                 stateChange_ = false;
