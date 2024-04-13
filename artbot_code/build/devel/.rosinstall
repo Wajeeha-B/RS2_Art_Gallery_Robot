@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/stmn8r/catkin_ws/src/rs2_art_gallery_robot/artbot_code/build/devel/setup.sh

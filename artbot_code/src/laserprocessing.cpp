@@ -21,6 +21,7 @@ LaserProcessing::LaserProcessing(sensor_msgs::LaserScan laserScan):
 
 // Ali's code
 
+// Min Distance and Angle implementation
 std::pair<double, double> LaserProcessing::MinDistAngle() {
     std::pair<double, double> distAngle;
     double minElement = laserScan_.ranges[0];
@@ -37,10 +38,38 @@ std::pair<double, double> LaserProcessing::MinDistAngle() {
     distAngle.second = minIndex * laserScan_.angle_increment + laserScan_.angle_min;
     return distAngle;
 }
-
+// 'Pass' test implementation
 std::pair<double, double> LaserProcessing::RangeAngle() {
     std::pair<double, double> rangeAngle;
     rangeAngle.first = *std::max_element(laserScan_.ranges.begin(), laserScan_.ranges.end());
     rangeAngle.second = std::distance(laserScan_.ranges.begin(), std::max_element(laserScan_.ranges.begin(), laserScan_.ranges.end())) * laserScan_.angle_increment + laserScan_.angle_min;
     return rangeAngle;
+    ROS_INFO("Range: %f, Angle: %f\n", rangeAngle.first, rangeAngle.second);
 }
+
+std::pair<double, double> LaserProcessing::Coordinate() {
+    std::pair<double, double> coordinate;
+
+// This needs to change. Variables are wrong.
+    double xRelative = laserScan_.ranges[0] * cos(laserScan_.angle_min);
+    double yRelative = laserScan_.ranges[0] * sin(laserScan_.angle_min);
+    coordinate.first = xRelative;
+    coordinate.second = yRelative;
+    return coordinate;
+
+    ROS_INFO("X: %f, Y: %f\n", coordinate.first, coordinate.second);
+}
+
+// From PFMS Quiz 3
+double normaliseAngle(double theta) {
+      if (theta > (2 * M_PI))
+        theta = theta - (2 * M_PI);
+      else if (theta < 0)
+        theta = theta + (2 * M_PI);
+
+      if (theta > M_PI){
+          theta = -( (2* M_PI) - theta);
+      }
+
+      return theta;
+    }
