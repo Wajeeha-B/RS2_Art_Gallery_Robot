@@ -28,7 +28,7 @@ public:
   /// @param [in] laserScan - laserScan to be processed
   LaserProcessing(sensor_msgs::LaserScan laserScan);
 
-// Pass 'Comprehending Sensor Data' Test
+// 'Pass' test declaration
   /// @brief Getter for distance and angle from default pose
   ///
   /// @return a pair for the doubles distance and the corresponding angle
@@ -39,6 +39,18 @@ public:
   ///
   /// @return a pair for the doubles distance and the corresponding angle
   std::pair<double, double> MinDistAngle();
+
+
+  /// @brief Getter for coordinates
+  ///
+  /// @return a pair for the double x.coordinate and the corresponding y.coordinate
+  std::pair<double, double> Coordinate();
+
+  /// @brief Normalises angle between -PI to PI, can only handle angles between -2PI to 4PI
+  /// @param angle
+  /// @return normalised angle
+  double normaliseAngle(double theta);
+
 
 
 private:
