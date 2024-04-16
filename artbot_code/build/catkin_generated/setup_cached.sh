@@ -8,6 +8,8 @@
 
 # modified environment variables
 export CMAKE_PREFIX_PATH="/home/stmn8r/catkin_ws/src/rs2_art_gallery_robot/artbot_code/build/devel:$CMAKE_PREFIX_PATH"
+export LD_LIBRARY_PATH="/home/stmn8r/catkin_ws/src/rs2_art_gallery_robot/artbot_code/build/devel/lib:$LD_LIBRARY_PATH"
+export PKG_CONFIG_PATH="/home/stmn8r/catkin_ws/src/rs2_art_gallery_robot/artbot_code/build/devel/lib/pkgconfig:$PKG_CONFIG_PATH"
 export PWD='/home/stmn8r/catkin_ws/src/rs2_art_gallery_robot/artbot_code/build'
 export ROSLISP_PACKAGE_DIRECTORIES="/home/stmn8r/catkin_ws/src/rs2_art_gallery_robot/artbot_code/build/devel/share/common-lisp:$ROSLISP_PACKAGE_DIRECTORIES"
 export ROS_PACKAGE_PATH="/home/stmn8r/catkin_ws/src/rs2_art_gallery_robot/artbot_code:$ROS_PACKAGE_PATH"

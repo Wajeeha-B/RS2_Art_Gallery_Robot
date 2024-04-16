@@ -26,6 +26,22 @@ ros/ros.h
 geometry_msgs/Twist.h
 -
 
+/home/stmn8r/catkin_ws/src/rs2_art_gallery_robot/artbot_code/src/pathplanning.cpp
+pathplanning.h
+/home/stmn8r/catkin_ws/src/rs2_art_gallery_robot/artbot_code/src/pathplanning.h
+algorithm
+-
+numeric
+-
+
+/home/stmn8r/catkin_ws/src/rs2_art_gallery_robot/artbot_code/src/pathplanning.h
+math.h
+-
+iostream
+-
+ros/ros.h
+/home/stmn8r/catkin_ws/src/rs2_art_gallery_robot/artbot_code/src/ros/ros.h
+
 /opt/ros/noetic/include/geometry_msgs/Twist.h
 string
 -
