@@ -134,14 +134,18 @@ private:
   double SENSOR_OFFSET_ = 0.12;
   //! The stop distance to stop the following TurtleBot before it collides with the guiding TurtleBot
   double STOP_DISTANCE_ = 0.34;
+
+  double GOAL_DISTANCE_ = 0.1;
   //! Boolean for stopping the TurtleBot when it becomes too close to the guiding TurtleBot
   double STEERING_SENS_ = 0.5;
   
   bool tooClose_;
 
-  int trajMode_ = 0;
+  int trajMode_ = 1;
 
   int goalIdx_;
+
+  double DBL_MAX_ = 1.7976931348623157E+308;
 };
 
 #endif // SAMPLE_H

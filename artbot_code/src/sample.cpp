@@ -33,9 +33,9 @@ Sample::Sample(ros::NodeHandle nh) :
     robotPose_.orientation.w = 0.0;
 
     //Sets the default goal to (0,0,0)
-    goal_.x = 0.0;
-    goal_.y = 0.0;
-    goal_.z = 0.0;
+    goal_.x = DBL_MAX_;
+    goal_.y = DBL_MAX_;
+    goal_.z = DBL_MAX_;
     // ROS_INFO_STREAM("Goal is reset!");
 
     goalIdx_ = 0;
@@ -108,14 +108,14 @@ void Sample::seperateThread() {
         
         // goals_ = pathPlanning.GetGoals();
         
-        if(goal_.x == 0.0 && goal_.y == 0.0 && goal_.z == 0.0){
+        if(goal_.x == DBL_MAX_ && goal_.y == DBL_MAX_ && goal_.z == DBL_MAX_){
             std::vector<geometry_msgs::Point> fakeGoals;
             // int ARRAY_SIZE = 6;
             // double goal_arrayX[ARRAY_SIZE] = {2.0, 4.0,  7.0, 10.0,  8.0};
             // double goal_arrayY[ARRAY_SIZE] = {-2.0, 0.0, 1.0, -1.0, -2.5};
             int ARRAY_SIZE = 5;
-            double goal_arrayX[ARRAY_SIZE] = {0.3, 0.6, 0.3, 0.0};
-            double goal_arrayY[ARRAY_SIZE] = {0.3, 0.0, -0.3, 0.0};
+            double goal_arrayX[ARRAY_SIZE] = {1.0, 2.0, 1.0, 0.0};
+            double goal_arrayY[ARRAY_SIZE] = {1.0, 0.0, -1.0, 0.0};
             
             for(int i = 0; i+1 < ARRAY_SIZE; i++){
                 geometry_msgs::Point fakeGoal;
@@ -126,9 +126,11 @@ void Sample::seperateThread() {
             goals_ = fakeGoals;
         }
 
-        else if(DistanceToGoal(goal_, robotPose_) < STOP_DISTANCE_ && (goalIdx_+1) < goals_.size()){
+        else if(DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_ && (goalIdx_+1) < goals_.size()){
             goalIdx_++;
         }
+
+        else if(goalIdx_ == goals_.size()-1 && DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_) running_ = false;
         
         // std::vector<geometry_msgs::Point> fakeGoals;
         // geometry_msgs::Point fakeGoal;
@@ -139,11 +141,11 @@ void Sample::seperateThread() {
 
         goal_ = goals_.at(goalIdx_);
 
-        // ROS_INFO("goal_: (%f, %f)", goal_.x, goal_.y);
-        // ROS_INFO("Distance: %f", DistanceToGoal(goal_, robotPose_));
-        // for(int i = 0; i < goals_.size(); i++){
-        //     ROS_INFO("goals_: (%f, %f)", goals_.at(i).x, goals_.at(i).y);
-        // }
+        ROS_INFO("goal_: (%f, %f)", goal_.x, goal_.y);
+        ROS_INFO("Distance: %f", DistanceToGoal(goal_, robotPose_));
+        for(int i = 0; i < goals_.size(); i++){
+            ROS_INFO("goals_: (%f, %f)", goals_.at(i).x, goals_.at(i).y);
+        }
 
         //Creates the variable for driving the TurtleBot
         geometry_msgs::Twist drive;
@@ -154,6 +156,30 @@ void Sample::seperateThread() {
             drive.angular.x = 0.0;
             drive.angular.y = 0.0;
             drive.angular.z = 0.0;
+
+            if(trajMode_ == 1){
+                double goal_angle = GetGoalAngle(goal_,robotPose_);
+                // ROS_INFO("steering = %f", fabs(goal_angle));
+                if(fabs(goal_angle) > 0.1){
+                    goal_angle = GetGoalAngle(goal_,robotPose_);
+                    drive.linear.x = 0.0;
+                    drive.linear.y = 0.0;
+                    drive.linear.z = 0.0;
+                    drive.angular.x = 0.0;
+                    drive.angular.y = 0.0;
+                    drive.angular.z = goal_angle*STEERING_SENS_;
+                    // ROS_INFO("steering = %f", drive.angular.z);
+                }
+                else{
+                    drive.linear.x = 0.2;
+                    drive.linear.y = 0.0;
+                    drive.linear.z = 0.0;
+                    drive.angular.x = 0.0;
+                    drive.angular.y = 0.0;
+                    drive.angular.z = 0.0;
+                    // ROS_INFO("driving = %f", drive.linear.x);
+                }
+            }
 
             if(stateChange_){
                 ROS_INFO_STREAM("TurtleBot is going forwards");
@@ -184,7 +210,7 @@ void Sample::seperateThread() {
         // ROS_INFO_STREAM("TurtleBot is moving");
         
         // Publishes the drive variable to control the TurtleBot
-        pubDrive_.publish(drive);
+        if(trajMode_ != 0) pubDrive_.publish(drive);
 
         //We have a rate timer, this sleep here is needed to ensure it stops and sleeps 
         //it will do it for the exact amount of time needed to run at 5Hz
