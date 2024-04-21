@@ -126,11 +126,17 @@ void Sample::seperateThread() {
             goals_ = fakeGoals;
         }
 
-        else if(DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_ && (goalIdx_+1) < goals_.size()){
-            goalIdx_++;
+        else if(DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_) {
+            if(goalIdx_+1 == goals_.size()){
+                running_ = false;
+                stateChange_ = true;
+            }
+            else{
+                ROS_INFO_STREAM("***GOAL REACHED***\n");
+                goalIdx_++;
+            }
         }
-
-        else if(goalIdx_ == goals_.size()-1 && DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_) running_ = false;
+        // else if(goalIdx_ == goals_.size()-1 && DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_) 
         
         // std::vector<geometry_msgs::Point> fakeGoals;
         // geometry_msgs::Point fakeGoal;
@@ -141,11 +147,13 @@ void Sample::seperateThread() {
 
         goal_ = goals_.at(goalIdx_);
 
-        ROS_INFO("goal_: (%f, %f)", goal_.x, goal_.y);
-        ROS_INFO("Distance: %f", DistanceToGoal(goal_, robotPose_));
-        for(int i = 0; i < goals_.size(); i++){
-            ROS_INFO("goals_: (%f, %f)", goals_.at(i).x, goals_.at(i).y);
+        if(trajMode_ == 1){
+            ROS_INFO("goal_: (%f, %f)", goal_.x, goal_.y);
+            ROS_INFO("Distance: %f", DistanceToGoal(goal_, robotPose_));
         }
+        // for(int i = 0; i < goals_.size(); i++){
+        //     ROS_INFO("goals_: (%f, %f)", goals_.at(i).x, goals_.at(i).y);
+        // }
 
         //Creates the variable for driving the TurtleBot
         geometry_msgs::Twist drive;
@@ -182,7 +190,7 @@ void Sample::seperateThread() {
             }
 
             if(stateChange_){
-                ROS_INFO_STREAM("TurtleBot is going forwards");
+                ROS_INFO_STREAM("TurtleBot is moving");
                 stateChange_ = false;
             }
         }

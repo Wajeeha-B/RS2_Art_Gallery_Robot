@@ -141,7 +141,7 @@ private:
   
   bool tooClose_;
 
-  int trajMode_ = 1;
+  int trajMode_ = 0;
 
   int goalIdx_;
 
