@@ -18,7 +18,7 @@ e.g. rs2_gazebo
 
 ### Terminal 2
     export TURTLEBOT3_MODEL=waffle
-    roslaunch turtlebot3_navigation turtlebot3_navigation.launch map_file:=$HOME/catkin_ws/src/     rs2_art_gallery_robot/examples/rs2_V3_map.yaml
+    roslaunch turtlebot3_navigation turtlebot3_navigation.launch map_file:=$HOME/catkin_ws/src/rs2_art_gallery_robot/examples/rs2_V3_map.yaml
 
 ### Terminal 3
     export TURTLEBOT3_MODEL=waffle

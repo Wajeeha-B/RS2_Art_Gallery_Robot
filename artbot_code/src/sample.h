@@ -133,7 +133,7 @@ private:
   //! The offset between the reference of the TurtleBot and the reference of the laser scanner
   double SENSOR_OFFSET_ = 0.12;
   //! The stop distance to stop the following TurtleBot before it collides with the guiding TurtleBot
-  double STOP_DISTANCE_ = 0.1;
+  double STOP_DISTANCE_ = 0.34;
   //! Boolean for stopping the TurtleBot when it becomes too close to the guiding TurtleBot
   double STEERING_SENS_ = 0.5;
   

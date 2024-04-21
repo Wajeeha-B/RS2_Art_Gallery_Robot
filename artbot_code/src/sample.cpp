@@ -86,23 +86,25 @@ void Sample::seperateThread() {
         // ROS_INFO("AngleMin= %f\n AngleMax= %f\n AngleIncrement= %f", laserData_.angle_min, laserData_.angle_max, laserData_.angle_increment);
         
         std::pair<double, double> rangeBearing;
-        rangeBearing.first = 0.0;
-        rangeBearing.second = 0.0;
-        // rangeBearing = laserProcessing.MinDistAngle();
+        // rangeBearing.first = 0.0;
+        // rangeBearing.second = 0.0;
+        rangeBearing = laserProcessing.MinDistAngle();
+        // ROS_INFO("Min Range: %f", rangeBearing.first);
 
         //Gets the distance from the angle
-        double dist = 0;
+        double dist = rangeBearing.first;
         // dist = laserProcessing.FindDistance(angle);
 
         //If the distance is less than the stop distance or more than the max value of an int (an invalid reading) the robot should stop
         if(dist < STOP_DISTANCE_ || dist > 2147483647 || rangeBearing.first < STOP_DISTANCE_){
             tooClose_ = true;
-            // ROS_INFO_STREAM("TurtleBot is too close to an obstacle!");
+            ROS_INFO_STREAM("TurtleBot is too close to an obstacle!");
+            ROS_INFO("Obstacle Range: %f\nObstacle angle: %f", rangeBearing.first, (rangeBearing.second*180/M_PI));
         }
         //Otherwise the robot is not too close
         else tooClose_ = false;
 
-        tooClose_ = false;
+        // tooClose_ = false;
         
         // goals_ = pathPlanning.GetGoals();
         
@@ -137,8 +139,8 @@ void Sample::seperateThread() {
 
         goal_ = goals_.at(goalIdx_);
 
-        ROS_INFO("goal_: (%f, %f)", goal_.x, goal_.y);
-        ROS_INFO("Distance: %f", DistanceToGoal(goal_, robotPose_));
+        // ROS_INFO("goal_: (%f, %f)", goal_.x, goal_.y);
+        // ROS_INFO("Distance: %f", DistanceToGoal(goal_, robotPose_));
         // for(int i = 0; i < goals_.size(); i++){
         //     ROS_INFO("goals_: (%f, %f)", goals_.at(i).x, goals_.at(i).y);
         // }
