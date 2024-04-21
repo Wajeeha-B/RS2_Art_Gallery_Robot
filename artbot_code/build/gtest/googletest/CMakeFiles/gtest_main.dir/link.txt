@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -g  -shared -Wl,-soname,libgtest_maind.so -o ../lib/libgtest_maind.so CMakeFiles/gtest_main.dir/src/gtest_main.cc.o  -Wl,-rpath,/home/stmn8r/catkin_ws/src/rs2_art_gallery_robot/artbot_code/build/gtest/lib ../lib/libgtestd.so -lpthread 
