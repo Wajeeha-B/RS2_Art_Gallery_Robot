@@ -6,7 +6,8 @@ using namespace std;
 
 //Default constructor of Laserprocessing, needs an initial set of laser data to be initialised
 LaserProcessing::LaserProcessing(sensor_msgs::LaserScan laserScan):
-    laserScan_(laserScan){
+    laserScan_(laserScan)
+    {
         
     }
 
@@ -34,8 +35,8 @@ std::pair<double, double> LaserProcessing::MinDistAngle() {
         }
     }
 
-    distAngle.first = minElement;
-    distAngle.second = minIndex * laserScan_.angle_increment + laserScan_.angle_min;
+    distAngle.first = minElement * 1000; // To convert to mm
+    distAngle.second = (minIndex * laserScan_.angle_increment + laserScan_.angle_min) * 180 / M_PI; // To convert to degrees
     return distAngle;
 }
 // 'Pass' test implementation

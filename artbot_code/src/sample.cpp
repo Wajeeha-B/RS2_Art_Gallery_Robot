@@ -88,7 +88,8 @@ void Sample::seperateThread() {
         std::pair<double, double> rangeBearing;
         rangeBearing.first = 0.0;
         rangeBearing.second = 0.0;
-        // rangeBearing = laserProcessing.MinDistAngle();
+        rangeBearing = laserProcessing.MinDistAngle();
+        ROS_INFO("Range: %fmm, Angle: %f °\n", rangeBearing.first, rangeBearing.second);
 
         //Gets the distance from the angle
         double dist = 0;
