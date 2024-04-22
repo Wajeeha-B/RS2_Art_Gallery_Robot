@@ -89,7 +89,7 @@ void Sample::seperateThread() {
         rangeBearing.first = 0.0;
         rangeBearing.second = 0.0;
         rangeBearing = laserProcessing.MinDistAngle();
-        ROS_INFO("Range: %fmm, Angle: %f °\n", rangeBearing.first, rangeBearing.second);
+        ROS_INFO("Range: %f mm, Angle: %f degrees\n", rangeBearing.first, rangeBearing.second);
 
         //Gets the distance from the angle
         double dist = 0;
