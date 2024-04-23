@@ -11,17 +11,21 @@ using std::endl;
 //Default constructor of the sample class
 Sample::Sample(ros::NodeHandle nh) :
     //Setting the default value for some variables
-    nh_(nh), running_(false), laserProcessingPtr_(nullptr),
+    nh_(nh), running_(false), real_(false), laserProcessingPtr_(nullptr),
     tooClose_(false), stateChange_(true)
 {
     //Subscribing to the laser sensor
     sub1_ = nh_.subscribe("/scan", 100, &Sample::laserCallback,this);
     //Subscribing to odometry of the robot
     sub2_ = nh_.subscribe("/odom", 100, &Sample::odomCallback,this);
+    //Subscribing to pose of the robot in real life
+    sub3_ = nh_.subscribe("/amcl_pose", 100, &Sample::amclCallback,this);
     //Publishing the driving commands
     pubDrive_ = nh.advertise<geometry_msgs::Twist>("/cmd_vel",3,false);
     //Service to enable the robot to start and stop from command line input
     service1_ = nh_.advertiseService("/mission", &Sample::request,this);
+
+    service2_ = nh_.advertiseService("/real", &Sample::real,this);
     
     //Sets the default robotPose_ to 0
     robotPose_.position.x = 0.0;
@@ -63,23 +67,35 @@ void Sample::odomCallback(const nav_msgs::OdometryConstPtr &msg)
     robotPose_ = pose; // We copy the pose here
 }
 
+void Sample::amclCallback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
+{
+    geometry_msgs::Pose pose = msg->pose.pose;
+    std::unique_lock<std::mutex> lck(robotPoseRealMtx_); // Locks the data for the robotPose to be saved
+    robotPoseReal_ = pose; // We copy the pose here
+}
+
 void Sample::seperateThread() {
+    ROS_INFO("here1");
     //Waits for the data to be populated from ROS
-    while(laserData_.range_min+laserData_.range_max == 0.0);//||
+    while(laserData_.range_min+laserData_.range_max == 0.0){
+        // ROS_INFO("Total: %f", laserData_.range_min+laserData_.range_max);
+    }//||
         //   robotPose_.orientation.w+robotPose_.orientation.x+
         //   robotPose_.orientation.y+robotPose_.orientation.z == 0.0);
-
+    ROS_INFO("here2");
     //Limits the execution of this code to 5Hz
     ros::Rate rate_limiter(5.0);
     while (ros::ok()) {
         //Locks all of the data with mutexes
         std::unique_lock<std::mutex> lck1 (laserDataMtx_);
         std::unique_lock<std::mutex> lck2 (robotPoseMtx_);
+        std::unique_lock<std::mutex> lck3 (robotPoseRealMtx_);
         
         //Creates the class object and gives the data from the sensors
         LaserProcessing laserProcessing(laserData_);
 
         //Unlocks all mutexes
+        lck3.unlock();
         lck2.unlock();
         lck1.unlock();
 
@@ -96,15 +112,16 @@ void Sample::seperateThread() {
         // dist = laserProcessing.FindDistance(angle);
 
         //If the distance is less than the stop distance or more than the max value of an int (an invalid reading) the robot should stop
-        if(dist < STOP_DISTANCE_ || dist > 2147483647 || rangeBearing.first < STOP_DISTANCE_){
+        if(dist < STOP_DISTANCE_ || dist > 2147483647){
             tooClose_ = true;
             ROS_INFO_STREAM("TurtleBot is too close to an obstacle!");
             ROS_INFO("Obstacle Range: %f\nObstacle angle: %f", rangeBearing.first, (rangeBearing.second*180/M_PI));
         }
         //Otherwise the robot is not too close
         else tooClose_ = false;
-
-        // tooClose_ = false;
+        
+        // ROS_INFO("Obstacle Range: %f\nObstacle angle: %f", rangeBearing.first, (rangeBearing.second*180/M_PI));
+        tooClose_ = false;
         
         // goals_ = pathPlanning.GetGoals();
         
@@ -126,7 +143,7 @@ void Sample::seperateThread() {
             goals_ = fakeGoals;
         }
 
-        else if(DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_) {
+        else if(DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_ || DistanceToGoal(goal_, robotPoseReal_) < GOAL_DISTANCE_) {
             if(goalIdx_+1 == goals_.size()){
                 running_ = false;
                 stateChange_ = true;
@@ -150,6 +167,7 @@ void Sample::seperateThread() {
         if(trajMode_ == 1){
             ROS_INFO("goal_: (%f, %f)", goal_.x, goal_.y);
             ROS_INFO("Distance: %f", DistanceToGoal(goal_, robotPose_));
+            ROS_INFO("Real Distance: %f", DistanceToGoal(goal_, robotPoseReal_));
         }
         // for(int i = 0; i < goals_.size(); i++){
         //     ROS_INFO("goals_: (%f, %f)", goals_.at(i).x, goals_.at(i).y);
@@ -166,10 +184,13 @@ void Sample::seperateThread() {
             drive.angular.z = 0.0;
 
             if(trajMode_ == 1){
-                double goal_angle = GetGoalAngle(goal_,robotPose_);
+                double goal_angle = 0;
+                if(!real_) goal_angle = GetGoalAngle(goal_,robotPose_);
+                else goal_angle = GetGoalAngle(goal_,robotPoseReal_);
                 // ROS_INFO("steering = %f", fabs(goal_angle));
                 if(fabs(goal_angle) > 0.1){
-                    goal_angle = GetGoalAngle(goal_,robotPose_);
+                    if(!real_) goal_angle = GetGoalAngle(goal_,robotPose_);
+                    else goal_angle = GetGoalAngle(goal_,robotPoseReal_);
                     drive.linear.x = 0.0;
                     drive.linear.y = 0.0;
                     drive.linear.z = 0.0;
@@ -250,6 +271,34 @@ bool Sample::request(std_srvs::SetBool::Request  &req,
         stateChange_ = true;
         res.message = "Turtlebot stopping";
         running_ = false;
+    }
+    //return true when the service completes its request
+    return true;
+}
+
+//Service that handles starting and stopping the missions based on command line input
+//Communicate with this service using 
+//rosservice call /mission "data: true"
+bool Sample::real(std_srvs::SetBool::Request  &req,
+                     std_srvs::SetBool::Response &res)
+{  
+    //If the request is true, start the mission
+    if(req.data)
+    {
+        ROS_INFO_STREAM("Requested: Real robot");
+        real_ = true; //start the robot if there is a goal
+        // stateChange_ = true;
+        res.success = true;
+        res.message = "The Turtlebot has started it's mission";
+
+    }
+    //if the request is false, stop the mission
+    else
+    {
+        ROS_INFO_STREAM("Requested: Sim robot");
+        real_ = false;
+        res.success = true;
+        res.message = "Turtlebot stopping";
     }
     //return true when the service completes its request
     return true;

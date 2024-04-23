@@ -24,11 +24,11 @@ LaserProcessing::LaserProcessing(sensor_msgs::LaserScan laserScan):
 // Min Distance and Angle implementation
 std::pair<double, double> LaserProcessing::MinDistAngle() {
     std::pair<double, double> distAngle;
-    double minElement = laserScan_.ranges[0];
+    double minElement = laserScan_.range_max;
     int minIndex = 0;
 
     for (int i = 1; i < laserScan_.ranges.size(); i++) {
-        if (laserScan_.ranges[i] < minElement) {
+        if (laserScan_.ranges[i] < minElement && laserScan_.ranges[i] > 0.001) {
             minElement = laserScan_.ranges[i];
             minIndex = i;
         }

@@ -8,6 +8,7 @@
 //ROS data types
 #include "std_srvs/SetBool.h"
 #include "nav_msgs/Odometry.h"
+#include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "tf/transform_datatypes.h"
 #include "geometry_msgs/Pose.h"
 #include "geometry_msgs/PoseArray.h"
@@ -59,6 +60,15 @@ public:
   /// @return bool - Will return true to indicate the request succeeded.
   bool request(std_srvs::SetBool::Request  &req,
                std_srvs::SetBool::Response &res);
+
+  /// @brief request service callback for starting and stopping the mission and Turtlebot's movement.
+  ///
+  /// @param [in] req The request, a boolean value where true means the mission is in progress and false stops the mission.
+  /// @param [in] res The response, a boolean and string value indicating if starting the mission was successful.
+  ///
+  /// @return bool - Will return true to indicate the request succeeded.
+  bool real(std_srvs::SetBool::Request  &req,
+            std_srvs::SetBool::Response &res);
   
   /// @brief Getter for distance to be travelled to reach goal, updates as the platform moves to current goal.
   ///
@@ -97,6 +107,12 @@ public:
   /// @param [in|out] msg nav_msgs::OdometryConstPtr - The odometry message
   /// @note This function and the declaration are ROS specific
   void odomCallback(const nav_msgs::OdometryConstPtr& msg);
+
+  /// @brief Odometry Callback from the world reference of the TurtleBot
+  ///
+  /// @param [in|out] msg nav_msgs::OdometryConstPtr - The odometry message
+  /// @note This function and the declaration are ROS specific
+  void amclCallback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg);
   
 private:
   //! Node handle for communication
@@ -107,8 +123,12 @@ private:
   ros::Subscriber sub1_;
   //! Robot odometry subscriber, uses OdomCallback
   ros::Subscriber sub2_;
+  //! Robot odometry subscriber, uses AmclCallback
+  ros::Subscriber sub3_;
   //! Mission service, starts and stops the mission
   ros::ServiceServer service1_;
+  //! Mission service, starts and stops the mission
+  ros::ServiceServer service2_;
   
   //! Pointer to Laser Object
   LaserProcessing* laserProcessingPtr_;
@@ -121,9 +141,15 @@ private:
   geometry_msgs::Pose robotPose_;
   //! Mutex to lock robotPose_
   std::mutex robotPoseMtx_;
+  //! Stores the position and orientation of the robot
+  geometry_msgs::Pose robotPoseReal_;
+  //! Mutex to lock robotPose_
+  std::mutex robotPoseRealMtx_;
 
   //! Flag for whether the car is moving and the mission is active
   std::atomic<bool> running_;
+  //! Flag for whether the it in sim or real life
+  std::atomic<bool> real_;
   //! Flag to prevent the terminal from being flooded with messages
   bool stateChange_;
   //! Stores a goal for the robot to move towards
@@ -141,7 +167,7 @@ private:
   
   bool tooClose_;
 
-  int trajMode_ = 0;
+  int trajMode_ = 1;
 
   int goalIdx_;
 
