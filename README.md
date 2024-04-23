@@ -53,3 +53,7 @@ e.g. rs2_gazebo
      Make sure to change the directory of rs2_map_V3.yaml file from:
      home/wajeeha/catkin_ws/src/rs2_art_gallery_robot/examples
      to your own directory (Replace wajeeha to <your name>)
+
+## Gmapping command
+     Run this command alongside the TERMINAL 1 and TERMINAL 3 commands from 'Launching the Simulation'
+     roslaunch turtlebot3_slam turtlebot3_slam.launch slam_methods:=gmapping
