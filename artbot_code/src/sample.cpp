@@ -11,15 +11,13 @@ using std::endl;
 //Default constructor of the sample class
 Sample::Sample(ros::NodeHandle nh) :
     //Setting the default value for some variables
-    nh_(nh), running_(false), real_(false), laserProcessingPtr_(nullptr),
+    nh_(nh), running_(false), real_(true), laserProcessingPtr_(nullptr),
     tooClose_(false), stateChange_(true)
 {
     //Subscribing to the laser sensor
     sub1_ = nh_.subscribe("/scan", 100, &Sample::laserCallback,this);
     //Subscribing to odometry of the robot
-    sub2_ = nh_.subscribe("/odom", 100, &Sample::odomCallback,this);
-    //Subscribing to pose of the robot in real life
-    sub3_ = nh_.subscribe("/amcl_pose", 100, &Sample::amclCallback,this);
+    sub2_ = nh_.subscribe("/amcl_pose", 100, &Sample::amclCallback,this);
     //Publishing the driving commands
     pubDrive_ = nh.advertise<geometry_msgs::Twist>("/cmd_vel",3,false);
     //Service to enable the robot to start and stop from command line input
@@ -59,43 +57,36 @@ void Sample::laserCallback(const sensor_msgs::LaserScanConstPtr& msg)
     laserData_ = *msg; // We store a copy of the LaserScan in laserData_
 }
 
-//A callback for odometry
-void Sample::odomCallback(const nav_msgs::OdometryConstPtr &msg)
+// //A callback for odometry
+// void Sample::odomCallback(const nav_msgs::OdometryConstPtr &msg)
+// {
+//     geometry_msgs::Pose pose = msg->pose.pose;
+//     std::unique_lock<std::mutex> lck(robotPoseMtx_); // Locks the data for the robotPose to be saved
+//     robotPose_ = pose; // We copy the pose here
+// }
+
+void Sample::amclCallback(const geometry_msgs::PoseWithCovarianceStampedConstPtr &msg)
 {
     geometry_msgs::Pose pose = msg->pose.pose;
     std::unique_lock<std::mutex> lck(robotPoseMtx_); // Locks the data for the robotPose to be saved
     robotPose_ = pose; // We copy the pose here
 }
 
-void Sample::amclCallback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
-{
-    geometry_msgs::Pose pose = msg->pose.pose;
-    std::unique_lock<std::mutex> lck(robotPoseRealMtx_); // Locks the data for the robotPose to be saved
-    robotPoseReal_ = pose; // We copy the pose here
-}
-
 void Sample::seperateThread() {
-    ROS_INFO("here1");
-    //Waits for the data to be populated from ROS
-    while(laserData_.range_min+laserData_.range_max == 0.0){
-        // ROS_INFO("Total: %f", laserData_.range_min+laserData_.range_max);
-    }//||
-        //   robotPose_.orientation.w+robotPose_.orientation.x+
-        //   robotPose_.orientation.y+robotPose_.orientation.z == 0.0);
-    ROS_INFO("here2");
+    // Waits for the data to be populated from ROS
+    while(laserData_.range_min+laserData_.range_max == 0.0) ROS_INFO_STREAM("Loading...");
     //Limits the execution of this code to 5Hz
+    int counter = 0;
     ros::Rate rate_limiter(5.0);
     while (ros::ok()) {
         //Locks all of the data with mutexes
         std::unique_lock<std::mutex> lck1 (laserDataMtx_);
         std::unique_lock<std::mutex> lck2 (robotPoseMtx_);
-        std::unique_lock<std::mutex> lck3 (robotPoseRealMtx_);
         
         //Creates the class object and gives the data from the sensors
         LaserProcessing laserProcessing(laserData_);
 
         //Unlocks all mutexes
-        lck3.unlock();
         lck2.unlock();
         lck1.unlock();
 
@@ -143,7 +134,7 @@ void Sample::seperateThread() {
             goals_ = fakeGoals;
         }
 
-        else if(DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_ || DistanceToGoal(goal_, robotPoseReal_) < GOAL_DISTANCE_) {
+        else if(DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_) {
             if(goalIdx_+1 == goals_.size()){
                 running_ = false;
                 stateChange_ = true;
@@ -164,10 +155,11 @@ void Sample::seperateThread() {
 
         goal_ = goals_.at(goalIdx_);
 
-        if(trajMode_ == 1){
+        counter++;
+        if(trajMode_ == 1 && counter == 5){
             ROS_INFO("goal_: (%f, %f)", goal_.x, goal_.y);
             ROS_INFO("Distance: %f", DistanceToGoal(goal_, robotPose_));
-            ROS_INFO("Real Distance: %f", DistanceToGoal(goal_, robotPoseReal_));
+            counter = 0;
         }
         // for(int i = 0; i < goals_.size(); i++){
         //     ROS_INFO("goals_: (%f, %f)", goals_.at(i).x, goals_.at(i).y);
@@ -184,13 +176,10 @@ void Sample::seperateThread() {
             drive.angular.z = 0.0;
 
             if(trajMode_ == 1){
-                double goal_angle = 0;
-                if(!real_) goal_angle = GetGoalAngle(goal_,robotPose_);
-                else goal_angle = GetGoalAngle(goal_,robotPoseReal_);
+                double goal_angle = GetGoalAngle(goal_,robotPose_);
                 // ROS_INFO("steering = %f", fabs(goal_angle));
                 if(fabs(goal_angle) > 0.1){
-                    if(!real_) goal_angle = GetGoalAngle(goal_,robotPose_);
-                    else goal_angle = GetGoalAngle(goal_,robotPoseReal_);
+                    goal_angle = GetGoalAngle(goal_,robotPose_);
                     drive.linear.x = 0.0;
                     drive.linear.y = 0.0;
                     drive.linear.z = 0.0;

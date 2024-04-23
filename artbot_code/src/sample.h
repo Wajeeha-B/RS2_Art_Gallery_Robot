@@ -106,7 +106,7 @@ public:
   ///
   /// @param [in|out] msg nav_msgs::OdometryConstPtr - The odometry message
   /// @note This function and the declaration are ROS specific
-  void odomCallback(const nav_msgs::OdometryConstPtr& msg);
+  // void odomCallback(const nav_msgs::OdometryConstPtr& msg);
 
   /// @brief Odometry Callback from the world reference of the TurtleBot
   ///
@@ -124,7 +124,7 @@ private:
   //! Robot odometry subscriber, uses OdomCallback
   ros::Subscriber sub2_;
   //! Robot odometry subscriber, uses AmclCallback
-  ros::Subscriber sub3_;
+  // ros::Subscriber sub3_;
   //! Mission service, starts and stops the mission
   ros::ServiceServer service1_;
   //! Mission service, starts and stops the mission
@@ -142,9 +142,9 @@ private:
   //! Mutex to lock robotPose_
   std::mutex robotPoseMtx_;
   //! Stores the position and orientation of the robot
-  geometry_msgs::Pose robotPoseReal_;
+  // geometry_msgs::Pose robotPoseReal_;
   //! Mutex to lock robotPose_
-  std::mutex robotPoseRealMtx_;
+  // std::mutex robotPoseRealMtx_;
 
   //! Flag for whether the car is moving and the mission is active
   std::atomic<bool> running_;
