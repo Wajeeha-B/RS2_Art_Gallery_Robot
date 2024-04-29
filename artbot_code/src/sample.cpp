@@ -122,8 +122,11 @@ void Sample::seperateThread() {
             // double goal_arrayX[ARRAY_SIZE] = {2.0, 4.0,  7.0, 10.0,  8.0};
             // double goal_arrayY[ARRAY_SIZE] = {-2.0, 0.0, 1.0, -1.0, -2.5};
             int ARRAY_SIZE = 5;
-            double goal_arrayX[ARRAY_SIZE] = {1.0, 2.0, 1.0, 0.0};
-            double goal_arrayY[ARRAY_SIZE] = {1.0, 0.0, -1.0, 0.0};
+            // double goal_arrayX[ARRAY_SIZE] = {1.0, 2.0, 1.0, 0.0};
+            // double goal_arrayY[ARRAY_SIZE] = {1.0, 0.0, -1.0, 0.0};
+
+            double goal_arrayX[ARRAY_SIZE] = {1.0, 1.0, 0.0, 0.0};
+            double goal_arrayY[ARRAY_SIZE] = {0.0, -1.0, -1.0, 0.0};
             
             for(int i = 0; i+1 < ARRAY_SIZE; i++){
                 geometry_msgs::Point fakeGoal;
@@ -197,6 +200,26 @@ void Sample::seperateThread() {
                     drive.angular.z = 0.0;
                     // ROS_INFO("driving = %f", drive.linear.x);
                 }
+            }
+            if(trajMode_ == 2){
+                squiggles::Constraints constraints = squiggles::Constraints(MAX_VEL, MAX_ACCEL, MAX_JERK);
+                squiggles::SplineGenerator generator = squiggles::SplineGenerator(
+                    constraints,
+                    std::make_shared<squiggles::TankModel>(ROBOT_WIDTH_, constraints));
+
+                std::vector<squiggles::ProfilePoint> path = generator.generate({squiggles::Pose(0, 0, 0), squiggles::Pose(-2, -2, 0)});
+                
+                double desiredVelocity = path.front().vector.vel;
+                // std::string single_path = path.at(0).to_string();
+                // ROS_INFO("Path: %s", single_path.c_str());
+                // std::stringstream ss;
+                // ss << "Member 1: " << path.member1 << ", ";
+                // ss << "Member 2: " << path.member2 << ", ";
+                // ss << "Member 3: " << path.member3;
+
+                // std::vector<squiggles::ProfilePoint> path = generator.generate({
+                // squiggles::Pose(0.0, 0.0, 1.0),
+                // squiggles::Pose(-4.0, -4.0, 1.0)});
             }
 
             if(stateChange_){

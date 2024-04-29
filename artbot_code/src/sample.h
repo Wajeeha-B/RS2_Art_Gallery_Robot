@@ -4,6 +4,11 @@
 #include "ros/ros.h"
 #include <atomic>
 #include <mutex>
+#include "squiggles.hpp"
+
+// #include "spline.hpp"
+// #include "physicalmodel/tankmodel.hpp"
+// #include "physicalmodel/physicalmodel.hpp"
 
 //ROS data types
 #include "std_srvs/SetBool.h"
@@ -167,11 +172,17 @@ private:
   
   bool tooClose_;
 
-  int trajMode_ = 1;
+  int trajMode_ = 2;
 
   int goalIdx_;
 
   double DBL_MAX_ = 1.7976931348623157E+308;
+
+  const double MAX_VEL = 2.0;   // in meters per second
+  const double MAX_ACCEL = 3.0; // in meters per second per second
+  const double MAX_JERK = 6.0;  // in meters per second per second per second
+
+  const double ROBOT_WIDTH_ = 0.3;
 };
 
 #endif // SAMPLE_H
