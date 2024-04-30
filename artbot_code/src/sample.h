@@ -164,7 +164,8 @@ private:
   //! The offset between the reference of the TurtleBot and the reference of the laser scanner
   double SENSOR_OFFSET_ = 0.12;
   //! The stop distance to stop the following TurtleBot before it collides with the guiding TurtleBot
-  double STOP_DISTANCE_ = 0.34;
+  // double STOP_DISTANCE_ = 0.34;
+  double STOP_DISTANCE_ = 0.24;
 
   double GOAL_DISTANCE_ = 0.1;
   //! Boolean for stopping the TurtleBot when it becomes too close to the guiding TurtleBot
@@ -176,13 +177,19 @@ private:
 
   int goalIdx_;
 
+  int velIdx_;
+
+  double time_;
+
   double DBL_MAX_ = 1.7976931348623157E+308;
 
-  const double MAX_VEL = 2.0;   // in meters per second
+  const double MAX_VEL = 0.26;   // in meters per second
   const double MAX_ACCEL = 3.0; // in meters per second per second
   const double MAX_JERK = 6.0;  // in meters per second per second per second
 
   const double ROBOT_WIDTH_ = 0.3;
+
+  std::vector<squiggles::ProfilePoint> path_;
 };
 
 #endif // SAMPLE_H

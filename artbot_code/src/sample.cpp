@@ -41,6 +41,9 @@ Sample::Sample(ros::NodeHandle nh) :
     // ROS_INFO_STREAM("Goal is reset!");
 
     goalIdx_ = 0;
+    
+    velIdx_ = 0;
+    time_ = 0;
 }
 
 // We delete anything that needs removing here specifically
@@ -147,16 +150,17 @@ void Sample::seperateThread() {
                 goalIdx_++;
             }
         }
-        // else if(goalIdx_ == goals_.size()-1 && DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_) 
-        
-        // std::vector<geometry_msgs::Point> fakeGoals;
-        // geometry_msgs::Point fakeGoal;
-        // fakeGoal.x = 2.0;
-        // fakeGoal.y = 2.0;
-        // fakeGoals.push_back(fakeGoal);
-        // goals_ = fakeGoals;
 
         goal_ = goals_.at(goalIdx_);
+
+        if(trajMode_ == 2 && (path_.empty() || DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_)){
+            squiggles::Constraints constraints = squiggles::Constraints(MAX_VEL, MAX_ACCEL, MAX_JERK);
+            squiggles::SplineGenerator generator = squiggles::SplineGenerator(
+                constraints,
+                std::make_shared<squiggles::TankModel>(ROBOT_WIDTH_, constraints));
+            path_ = generator.generate({squiggles::Pose(robotPose_.position.x, robotPose_.position.y, robotPose_.position.z), squiggles::Pose(-2, -2, 0)});
+            ROS_INFO_STREAM("Path generated");
+        }
 
         counter++;
         if(trajMode_ == 1 && counter == 5){
@@ -171,6 +175,12 @@ void Sample::seperateThread() {
         //Creates the variable for driving the TurtleBot
         geometry_msgs::Twist drive;
         if(running_ && !tooClose_){
+            if(stateChange_){
+                ROS_INFO_STREAM("TurtleBot is moving");
+                stateChange_ = false;
+                time_ = 0.0;
+            }
+
             drive.linear.x = 0.5; //sends it forward
             drive.linear.y = 0.0;
             drive.linear.z = 0.0;
@@ -202,29 +212,27 @@ void Sample::seperateThread() {
                 }
             }
             if(trajMode_ == 2){
-                squiggles::Constraints constraints = squiggles::Constraints(MAX_VEL, MAX_ACCEL, MAX_JERK);
-                squiggles::SplineGenerator generator = squiggles::SplineGenerator(
-                    constraints,
-                    std::make_shared<squiggles::TankModel>(ROBOT_WIDTH_, constraints));
 
-                std::vector<squiggles::ProfilePoint> path = generator.generate({squiggles::Pose(0, 0, 0), squiggles::Pose(-2, -2, 0)});
-                
-                double desiredVelocity = path.front().vector.vel;
-                // std::string single_path = path.at(0).to_string();
-                // ROS_INFO("Path: %s", single_path.c_str());
-                // std::stringstream ss;
-                // ss << "Member 1: " << path.member1 << ", ";
-                // ss << "Member 2: " << path.member2 << ", ";
-                // ss << "Member 3: " << path.member3;
+                time_ += 0.2;
+                double timeStamp = path_.at(velIdx_).time;
+                if(time_ > timeStamp) velIdx_++;
+                ROS_INFO("time: %f, timestamp: %f", time_, timeStamp);
 
-                // std::vector<squiggles::ProfilePoint> path = generator.generate({
-                // squiggles::Pose(0.0, 0.0, 1.0),
-                // squiggles::Pose(-4.0, -4.0, 1.0)});
-            }
+                double v_left = path_.at(velIdx_).wheel_velocities[0];
+                double v_right = path_.at(velIdx_).wheel_velocities[1];
+                ROS_INFO("V left: %f, V right: %f", v_left, v_right);
 
-            if(stateChange_){
-                ROS_INFO_STREAM("TurtleBot is moving");
-                stateChange_ = false;
+                double V = (v_left + v_right) / 2.0;
+                double omega = (v_right - v_left) / ROBOT_WIDTH_;
+                ROS_INFO("V: %f, omega: %f", V, omega);
+
+                drive.linear.x = V;
+                drive.linear.y = 0.0;
+                drive.linear.z = 0.0;
+                drive.angular.x = 0.0;
+                drive.angular.y = 0.0;
+                drive.angular.z = omega;
+                ROS_INFO("Drive X: %f, Drive Z: %f", drive.linear.x, drive.angular.z);
             }
         }
         //Stops the TurtleBot
