@@ -105,6 +105,9 @@ public:
   ///
   /// @param [in|out] msg sensor_msgs::LaserScanConstPtr - the laser scan data
   /// @note This function and the declaration are ROS specific
+
+  void CollectGoals();
+
   void laserCallback(const sensor_msgs::LaserScanConstPtr& msg);
 
   /// @brief Odometry Callback from the world reference of the TurtleBot
@@ -118,6 +121,12 @@ public:
   /// @param [in|out] msg nav_msgs::OdometryConstPtr - The odometry message
   /// @note This function and the declaration are ROS specific
   void amclCallback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg);
+
+  /// @brief Odometry Callback from the world reference of the TurtleBot
+  ///
+  /// @param [in|out] msg nav_msgs::OdometryConstPtr - The odometry message
+  /// @note This function and the declaration are ROS specific
+  void pathCallback(const geometry_msgs::PointConstPtr& msg);
   
 private:
   //! Node handle for communication
@@ -129,7 +138,7 @@ private:
   //! Robot odometry subscriber, uses OdomCallback
   ros::Subscriber sub2_;
   //! Robot odometry subscriber, uses AmclCallback
-  // ros::Subscriber sub3_;
+  ros::Subscriber sub3_;
   //! Mission service, starts and stops the mission
   ros::ServiceServer service1_;
   //! Mission service, starts and stops the mission
@@ -147,9 +156,9 @@ private:
   //! Mutex to lock robotPose_
   std::mutex robotPoseMtx_;
   //! Stores the position and orientation of the robot
-  // geometry_msgs::Pose robotPoseReal_;
+  geometry_msgs::Point pathData_;
   //! Mutex to lock robotPose_
-  // std::mutex robotPoseRealMtx_;
+  std::mutex pathDataMtx_;
 
   //! Flag for whether the car is moving and the mission is active
   std::atomic<bool> running_;
@@ -173,7 +182,7 @@ private:
   
   bool tooClose_;
 
-  int trajMode_ = 2;
+  int trajMode_ = 1;
 
   int goalIdx_;
 

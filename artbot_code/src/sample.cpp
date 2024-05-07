@@ -18,6 +18,8 @@ Sample::Sample(ros::NodeHandle nh) :
     sub1_ = nh_.subscribe("/scan", 100, &Sample::laserCallback,this);
     //Subscribing to odometry of the robot
     sub2_ = nh_.subscribe("/amcl_pose", 100, &Sample::amclCallback,this);
+
+    sub3_ = nh_.subscribe("/thepath", 10, &Sample::pathCallback,this);
     //Publishing the driving commands
     pubDrive_ = nh.advertise<geometry_msgs::Twist>("/cmd_vel",3,false);
     //Service to enable the robot to start and stop from command line input
@@ -33,6 +35,11 @@ Sample::Sample(ros::NodeHandle nh) :
     robotPose_.orientation.y = 0.0;
     robotPose_.orientation.z = 0.0;
     robotPose_.orientation.w = 0.0;
+
+    //Sets the default pathData_ to 0
+    pathData_.x = 0.0;
+    pathData_.y = 0.0;
+    pathData_.z = 0.0;
 
     //Sets the default goal to (0,0,0)
     goal_.x = DBL_MAX_;
@@ -75,21 +82,30 @@ void Sample::amclCallback(const geometry_msgs::PoseWithCovarianceStampedConstPtr
     robotPose_ = pose; // We copy the pose here
 }
 
+//A callback for the laser scanner
+void Sample::pathCallback(const geometry_msgs::PointConstPtr& msg)
+{
+    std::unique_lock<std::mutex> lck(pathDataMtx_); // Locks the data for the laserData to be saved
+    pathData_ = *msg; // We store a copy of the LaserScan in laserData_
+}
+
 void Sample::seperateThread() {
     // Waits for the data to be populated from ROS
     while(laserData_.range_min+laserData_.range_max == 0.0) ROS_INFO_STREAM("Loading...");
     //Limits the execution of this code to 5Hz
     int counter = 0;
-    ros::Rate rate_limiter(5.0);
+    ros::Rate rate_limiter(10.0);
     while (ros::ok()) {
         //Locks all of the data with mutexes
         std::unique_lock<std::mutex> lck1 (laserDataMtx_);
         std::unique_lock<std::mutex> lck2 (robotPoseMtx_);
+        std::unique_lock<std::mutex> lck3 (pathDataMtx_);
         
         //Creates the class object and gives the data from the sensors
         LaserProcessing laserProcessing(laserData_);
 
         //Unlocks all mutexes
+        lck3.unlock();
         lck2.unlock();
         lck1.unlock();
 
@@ -118,29 +134,30 @@ void Sample::seperateThread() {
         tooClose_ = false;
         
         // goals_ = pathPlanning.GetGoals();
-        
-        if(goal_.x == DBL_MAX_ && goal_.y == DBL_MAX_ && goal_.z == DBL_MAX_){
-            std::vector<geometry_msgs::Point> fakeGoals;
-            // int ARRAY_SIZE = 6;
-            // double goal_arrayX[ARRAY_SIZE] = {2.0, 4.0,  7.0, 10.0,  8.0};
-            // double goal_arrayY[ARRAY_SIZE] = {-2.0, 0.0, 1.0, -1.0, -2.5};
-            int ARRAY_SIZE = 5;
-            // double goal_arrayX[ARRAY_SIZE] = {1.0, 2.0, 1.0, 0.0};
-            // double goal_arrayY[ARRAY_SIZE] = {1.0, 0.0, -1.0, 0.0};
+        CollectGoals();
 
-            double goal_arrayX[ARRAY_SIZE] = {1.0, 1.0, 0.0, 0.0};
-            double goal_arrayY[ARRAY_SIZE] = {0.0, -1.0, -1.0, 0.0};
+        // if(goal_.x == DBL_MAX_ && goal_.y == DBL_MAX_ && goal_.z == DBL_MAX_){
+        //     std::vector<geometry_msgs::Point> fakeGoals;
+        //     // int ARRAY_SIZE = 6;
+        //     // double goal_arrayX[ARRAY_SIZE] = {2.0, 4.0,  7.0, 10.0,  8.0};
+        //     // double goal_arrayY[ARRAY_SIZE] = {-2.0, 0.0, 1.0, -1.0, -2.5};
+        //     int ARRAY_SIZE = 5;
+        //     // double goal_arrayX[ARRAY_SIZE] = {1.0, 2.0, 1.0, 0.0};
+        //     // double goal_arrayY[ARRAY_SIZE] = {1.0, 0.0, -1.0, 0.0};
+
+        //     double goal_arrayX[ARRAY_SIZE] = {1.0, 1.0, 0.0, 0.0};
+        //     double goal_arrayY[ARRAY_SIZE] = {0.0, -1.0, -1.0, 0.0};
             
-            for(int i = 0; i+1 < ARRAY_SIZE; i++){
-                geometry_msgs::Point fakeGoal;
-                fakeGoal.x = goal_arrayX[i];
-                fakeGoal.y = goal_arrayY[i];
-                fakeGoals.push_back(fakeGoal);
-            }
-            goals_ = fakeGoals;
-        }
+        //     for(int i = 0; i+1 < ARRAY_SIZE; i++){
+        //         geometry_msgs::Point fakeGoal;
+        //         fakeGoal.x = goal_arrayX[i];
+        //         fakeGoal.y = goal_arrayY[i];
+        //         fakeGoals.push_back(fakeGoal);
+        //     }
+        //     goals_ = fakeGoals;
+        // }
 
-        else if(DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_) {
+        if(DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_) {
             if(goalIdx_+1 == goals_.size()){
                 running_ = false;
                 stateChange_ = true;
@@ -151,21 +168,29 @@ void Sample::seperateThread() {
             }
         }
 
-        goal_ = goals_.at(goalIdx_);
+        if(!goals_.empty()) goal_ = goals_.at(goalIdx_);
 
         if(trajMode_ == 2 && (path_.empty() || DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_)){
             squiggles::Constraints constraints = squiggles::Constraints(MAX_VEL, MAX_ACCEL, MAX_JERK);
             squiggles::SplineGenerator generator = squiggles::SplineGenerator(
                 constraints,
                 std::make_shared<squiggles::TankModel>(ROBOT_WIDTH_, constraints));
-            path_ = generator.generate({squiggles::Pose(robotPose_.position.x, robotPose_.position.y, robotPose_.position.z), squiggles::Pose(-2, -2, 0)});
+            path_ = generator.generate({squiggles::Pose(robotPose_.position.x, robotPose_.position.y, robotPose_.position.z), squiggles::Pose(goal_.x, goal_.y, 0)});
+            time_ = 0.0;
             ROS_INFO_STREAM("Path generated");
         }
 
         counter++;
-        if(trajMode_ == 1 && counter == 5){
+        if(counter == 10){
             ROS_INFO("goal_: (%f, %f)", goal_.x, goal_.y);
             ROS_INFO("Distance: %f", DistanceToGoal(goal_, robotPose_));
+            ROS_INFO("goals_ size: %ld", goals_.size());
+            ROS_INFO("GoalIdx: %d", goalIdx_);
+            if(!goals_.empty()){
+                for (int i = 0; i < goals_.size()-1; i++){
+                    ROS_INFO("goals_ at %d: (%f, %f)", i, goals_.at(i).x, goals_.at(i).y);
+                }
+            }
             counter = 0;
         }
         // for(int i = 0; i < goals_.size(); i++){
@@ -178,7 +203,6 @@ void Sample::seperateThread() {
             if(stateChange_){
                 ROS_INFO_STREAM("TurtleBot is moving");
                 stateChange_ = false;
-                time_ = 0.0;
             }
 
             drive.linear.x = 0.5; //sends it forward
@@ -212,19 +236,25 @@ void Sample::seperateThread() {
                 }
             }
             if(trajMode_ == 2){
-
-                time_ += 0.2;
+                
+                time_ += 0.1;
                 double timeStamp = path_.at(velIdx_).time;
-                if(time_ > timeStamp) velIdx_++;
-                ROS_INFO("time: %f, timestamp: %f", time_, timeStamp);
+                if(time_ > timeStamp && velIdx_ < path_.size()-1) velIdx_++;
+                
+                // ROS_INFO("time: %f, timestamp: %f", time_, timeStamp);
+
+                if(counter == 10){
+                    ROS_INFO("time: %f, timestamp: %f", time_, timeStamp);
+                    counter = 0;
+                }
 
                 double v_left = path_.at(velIdx_).wheel_velocities[0];
                 double v_right = path_.at(velIdx_).wheel_velocities[1];
-                ROS_INFO("V left: %f, V right: %f", v_left, v_right);
+                // ROS_INFO("V left: %f, V right: %f", v_left, v_right);
 
                 double V = (v_left + v_right) / 2.0;
                 double omega = (v_right - v_left) / ROBOT_WIDTH_;
-                ROS_INFO("V: %f, omega: %f", V, omega);
+                // ROS_INFO("V: %f, omega: %f", V, omega);
 
                 drive.linear.x = V;
                 drive.linear.y = 0.0;
@@ -232,7 +262,7 @@ void Sample::seperateThread() {
                 drive.angular.x = 0.0;
                 drive.angular.y = 0.0;
                 drive.angular.z = omega;
-                ROS_INFO("Drive X: %f, Drive Z: %f", drive.linear.x, drive.angular.z);
+                // ROS_INFO("Drive X: %f, Drive Z: %f", drive.linear.x, drive.angular.z);
             }
         }
         //Stops the TurtleBot
@@ -357,4 +387,16 @@ double Sample::fabs(double x)
 {
     if(x < 0) return -x;
     else return x;
+}
+
+void Sample::CollectGoals(){
+    if(pathData_.x > 0.0 || pathData_.x < 0.0){
+        // if(goals_.empty()) goals_.push_back(pathData_);
+        // else if(pathData_.x != goals_.back().x &&
+        //         pathData_.y != goals_.back().y &&
+        //         pathData_.z != goals_.back().z) goals_.push_back(pathData_);
+        if(goals_.empty()||(pathData_ != goals_.back())) goals_.push_back(pathData_);
+    }
+
+    if(!goals_.empty()) goal_ = goals_.at(goalIdx_);
 }
