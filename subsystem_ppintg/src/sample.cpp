@@ -129,11 +129,11 @@ void Sample::publishPath(std::vector<geometry_msgs::Point> vec_of_simplified_way
    for (const auto &point : vec_of_simplified_waypts)
     {
         custompath_pub_.publish(point);
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     }
     // wait half a sec
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 }
 
 
