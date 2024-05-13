@@ -1,0 +1,15 @@
+name: Build
+on: push
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Build
+        env:
+          CC: gcc-9
+          CXX: g++-9
+        run: ./pleasew build //main:squiggles //main:squigglesviscompat //main:squiggles_test //main:squiggles_memcheck

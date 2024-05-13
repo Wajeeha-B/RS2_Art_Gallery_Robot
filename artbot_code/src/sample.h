@@ -128,6 +128,8 @@ public:
   /// @note This function and the declaration are ROS specific
 
   void CollectGoals();
+
+  double GetGoalOrientation(std::vector<geometry_msgs::Point> goals, geometry_msgs::Pose robot);
   
 private:
   //! Node handle for communication
@@ -179,13 +181,13 @@ private:
   // double STOP_DISTANCE_ = 0.34;
   double STOP_DISTANCE_ = 0.24;
 
-  double GOAL_DISTANCE_ = 0.1;
+  double GOAL_DISTANCE_ = 0.15;
   //! Boolean for stopping the TurtleBot when it becomes too close to the guiding TurtleBot
   double STEERING_SENS_ = 0.5;
   
   bool tooClose_;
 
-  int trajMode_ = 1;
+  int trajMode_ = 2;
 
   int goalIdx_;
 

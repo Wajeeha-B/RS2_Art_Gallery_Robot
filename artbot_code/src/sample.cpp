@@ -149,28 +149,28 @@ void Sample::seperateThread() {
         markerArray.markers.push_back(marker); //goal marker is pushed into marker array
 
         // goals_ = pathPlanning.GetGoals();
-        CollectGoals();
+        // CollectGoals();
 
-        // if(goal_.x == DBL_MAX_ && goal_.y == DBL_MAX_ && goal_.z == DBL_MAX_){
-        //     std::vector<geometry_msgs::Point> fakeGoals;
-        //     // int ARRAY_SIZE = 6;
-        //     // double goal_arrayX[ARRAY_SIZE] = {2.0, 4.0,  7.0, 10.0,  8.0};
-        //     // double goal_arrayY[ARRAY_SIZE] = {-2.0, 0.0, 1.0, -1.0, -2.5};
-        //     int ARRAY_SIZE = 5;
-        //     // double goal_arrayX[ARRAY_SIZE] = {1.0, 2.0, 1.0, 0.0};
-        //     // double goal_arrayY[ARRAY_SIZE] = {1.0, 0.0, -1.0, 0.0};
+        if(goal_.x == DBL_MAX_ && goal_.y == DBL_MAX_ && goal_.z == DBL_MAX_){
+            std::vector<geometry_msgs::Point> fakeGoals;
+            // int ARRAY_SIZE = 6;
+            // double goal_arrayX[ARRAY_SIZE] = {2.0, 4.0,  7.0, 10.0,  8.0};
+            // double goal_arrayY[ARRAY_SIZE] = {-2.0, 0.0, 1.0, -1.0, -2.5};
+            int ARRAY_SIZE = 5;
+            // double goal_arrayX[ARRAY_SIZE] = {1.0, 2.0, 1.0, 0.0};
+            // double goal_arrayY[ARRAY_SIZE] = {1.0, 0.0, -1.0, 0.0};
 
-        //     double goal_arrayX[ARRAY_SIZE] = {1.0, 1.0, 0.0, 0.0};
-        //     double goal_arrayY[ARRAY_SIZE] = {0.0, -1.0, -1.0, 0.0};
+            double goal_arrayX[ARRAY_SIZE] = {1.0, 1.0, 0.0, 0.0};
+            double goal_arrayY[ARRAY_SIZE] = {0.0, -1.0, -1.0, 0.0};
             
-        //     for(int i = 0; i+1 < ARRAY_SIZE; i++){
-        //         geometry_msgs::Point fakeGoal;
-        //         fakeGoal.x = goal_arrayX[i];
-        //         fakeGoal.y = goal_arrayY[i];
-        //         fakeGoals.push_back(fakeGoal);
-        //     }
-        //     goals_ = fakeGoals;
-        // }
+            for(int i = 0; i+1 < ARRAY_SIZE; i++){
+                geometry_msgs::Point fakeGoal;
+                fakeGoal.x = goal_arrayX[i];
+                fakeGoal.y = goal_arrayY[i];
+                fakeGoals.push_back(fakeGoal);
+            }
+            goals_ = fakeGoals;
+        }
 
         if(DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_) {
             if(goalIdx_+1 == goals_.size()){
@@ -185,13 +185,15 @@ void Sample::seperateThread() {
 
         if(!goals_.empty()) goal_ = goals_.at(goalIdx_);
 
-        if(trajMode_ == 2 && (path_.empty() || DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_)){
+        if(trajMode_ == 2 && (path_.empty() || DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_ || velIdx_ == path_.size()-1)){
             squiggles::Constraints constraints = squiggles::Constraints(MAX_VEL, MAX_ACCEL, MAX_JERK);
             squiggles::SplineGenerator generator = squiggles::SplineGenerator(
                 constraints,
                 std::make_shared<squiggles::TankModel>(ROBOT_WIDTH_, constraints));
-            path_ = generator.generate({squiggles::Pose(robotPose_.position.x, robotPose_.position.y, tf::getYaw(robotPose_.orientation)), squiggles::Pose(goal_.x, goal_.y, 0)});
+            path_ = generator.generate({squiggles::Pose(robotPose_.position.x, robotPose_.position.y, tf::getYaw(robotPose_.orientation)),
+                                        squiggles::Pose(goal_.x, goal_.y, GetGoalOrientation(goals_, robotPose_))});
             time_ = 0.0;
+            velIdx_ = 0;
             ROS_INFO_STREAM("Path generated");
         }
 
@@ -200,7 +202,7 @@ void Sample::seperateThread() {
             ROS_INFO("goal_: (%f, %f)", goal_.x, goal_.y);
             ROS_INFO("Distance: %f", DistanceToGoal(goal_, robotPose_));
             ROS_INFO("GoalIdx: %d", goalIdx_);
-            ROS_INFO("goals_ size: %ld", goals_.size());
+            // ROS_INFO("goals_ size: %ld", goals_.size());
             // if(!goals_.empty()){
             //     for (int i = 0; i < goals_.size()-1; i++){
             //         ROS_INFO("goals_ at %d: (%f, %f)", i, goals_.at(i).x, goals_.at(i).y);
@@ -461,4 +463,16 @@ void Sample::CollectGoals(){
     }
 
     if(!goals_.empty()) goal_ = goals_.at(goalIdx_);
+}
+
+double Sample::GetGoalOrientation(std::vector<geometry_msgs::Point> goals, geometry_msgs::Pose robot){
+    if (goalIdx_ < goals.size()-2){
+        geometry_msgs::Point goal = goals.at(goalIdx_+1);
+        double angle = GetGoalAngle(goal,robot);
+        ROS_INFO("goal1: %f, %f)", goals.at(goalIdx_).x, goals.at(goalIdx_).y);
+        ROS_INFO("goal2: %f, %f)", goals.at(goalIdx_+1).x, goals.at(goalIdx_+1).y);
+        ROS_INFO("angle: %f", angle);
+        return angle;
+    }
+    else return 0.0;
 }
