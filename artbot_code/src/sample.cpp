@@ -12,7 +12,7 @@ using std::endl;
 Sample::Sample(ros::NodeHandle nh) :
     //Setting the default value for some variables
     nh_(nh), running_(false), real_(true), laserProcessingPtr_(nullptr),
-    tooClose_(false), stateChange_(true)
+    tooClose_(false), stateChange_(true), marker_counter_(0)
 {
     //Subscribing to the laser sensor
     sub1_ = nh_.subscribe("/scan", 100, &Sample::laserCallback,this);
@@ -22,6 +22,9 @@ Sample::Sample(ros::NodeHandle nh) :
     sub3_ = nh_.subscribe("/thepath", 10, &Sample::pathCallback,this);
     //Publishing the driving commands
     pubDrive_ = nh.advertise<geometry_msgs::Twist>("/cmd_vel",3,false);
+
+    pubVis_ = nh_.advertise<visualization_msgs::MarkerArray>("visualization_marker",3,false);
+
     //Service to enable the robot to start and stop from command line input
     service1_ = nh_.advertiseService("/mission", &Sample::request,this);
 
@@ -133,6 +136,18 @@ void Sample::seperateThread() {
         // ROS_INFO("Obstacle Range: %f\nObstacle angle: %f", rangeBearing.first, (rangeBearing.second*180/M_PI));
         tooClose_ = false;
         
+        geometry_msgs::Point fakeMarker;
+        fakeMarker.x = 1.0;
+        fakeMarker.y = 1.0;
+        fakeMarker.z = 0.0;
+        
+        visualization_msgs::MarkerArray markerArray; //creates the marker array for publishing
+
+        // for(int i = 0; )
+        //We create a marker for the goal
+        visualization_msgs::Marker marker = createMarker(fakeMarker, false);
+        markerArray.markers.push_back(marker); //goal marker is pushed into marker array
+
         // goals_ = pathPlanning.GetGoals();
         CollectGoals();
 
@@ -175,24 +190,25 @@ void Sample::seperateThread() {
             squiggles::SplineGenerator generator = squiggles::SplineGenerator(
                 constraints,
                 std::make_shared<squiggles::TankModel>(ROBOT_WIDTH_, constraints));
-            path_ = generator.generate({squiggles::Pose(robotPose_.position.x, robotPose_.position.y, robotPose_.position.z), squiggles::Pose(goal_.x, goal_.y, 0)});
+            path_ = generator.generate({squiggles::Pose(robotPose_.position.x, robotPose_.position.y, tf::getYaw(robotPose_.orientation)), squiggles::Pose(goal_.x, goal_.y, 0)});
             time_ = 0.0;
             ROS_INFO_STREAM("Path generated");
         }
 
         counter++;
-        if(counter == 10){
+        if(counter == 10 && goal_.x != DBL_MAX_ && goal_.y != DBL_MAX_ && goal_.z != DBL_MAX_){
             ROS_INFO("goal_: (%f, %f)", goal_.x, goal_.y);
             ROS_INFO("Distance: %f", DistanceToGoal(goal_, robotPose_));
-            ROS_INFO("goals_ size: %ld", goals_.size());
             ROS_INFO("GoalIdx: %d", goalIdx_);
-            if(!goals_.empty()){
-                for (int i = 0; i < goals_.size()-1; i++){
-                    ROS_INFO("goals_ at %d: (%f, %f)", i, goals_.at(i).x, goals_.at(i).y);
-                }
-            }
+            ROS_INFO("goals_ size: %ld", goals_.size());
+            // if(!goals_.empty()){
+            //     for (int i = 0; i < goals_.size()-1; i++){
+            //         ROS_INFO("goals_ at %d: (%f, %f)", i, goals_.at(i).x, goals_.at(i).y);
+            //     }
+            // }
             counter = 0;
         }
+        else if (counter > 10) counter = 0;
         // for(int i = 0; i < goals_.size(); i++){
         //     ROS_INFO("goals_: (%f, %f)", goals_.at(i).x, goals_.at(i).y);
         // }
@@ -291,10 +307,56 @@ void Sample::seperateThread() {
         // Publishes the drive variable to control the TurtleBot
         if(trajMode_ != 0) pubDrive_.publish(drive);
 
+        pubVis_.publish(markerArray);
+
         //We have a rate timer, this sleep here is needed to ensure it stops and sleeps 
         //it will do it for the exact amount of time needed to run at 5Hz
         rate_limiter.sleep();
     }
+}
+
+visualization_msgs::Marker Sample::createMarker(geometry_msgs::Point point, bool newSegment){
+  
+  visualization_msgs::Marker marker;
+
+  //Set the reference frame ID and time stamp.
+  marker.header.frame_id = "map";
+  marker.header.stamp = ros::Time::now();
+
+  //Lifetime of the object, matches the Hz of the rate limiter
+  marker.lifetime = ros::Duration(0.1);
+  
+  //Unique ID of the marker
+  marker.id = marker_counter_++; 
+
+  marker.type = visualization_msgs::Marker::CUBE;
+  // Set the scale of the marker
+  marker.scale.x = 0.5;
+  marker.scale.y = 0.5;
+  marker.scale.z = 0.5;
+  //Colour is r,g,b where each channel of colour is 0-1. This marker is green
+  marker.color.r = 0;
+  marker.color.g = 1;
+  marker.color.b = 0;
+
+  // Set the marker action. This will add it to the screen
+  marker.action = visualization_msgs::Marker::ADD;
+
+  // Sets the position of the marker
+  marker.pose.position.x = point.x;
+  marker.pose.position.y = point.y;
+  marker.pose.position.z = point.z;
+
+  //Sets the orientation, we are not going to orientate it
+  marker.pose.orientation.x = 0.0;
+  marker.pose.orientation.y = 0.0;
+  marker.pose.orientation.z = 0.0;
+  marker.pose.orientation.w = 1.0;
+
+  //Alpha is transparency (50% transparent)
+  marker.color.a = 0.5f;
+
+  return marker;
 }
 
 //Service that handles starting and stopping the missions based on command line input

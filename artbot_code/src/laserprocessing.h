@@ -34,12 +34,10 @@ public:
   /// @return a pair for the doubles distance and the corresponding angle
   std::pair<double, double> RangeAngle();
 
-
   /// @brief Getter for distance and angle to the nearest obstacle
   ///
   /// @return a pair for the doubles distance and the corresponding angle
   std::pair<double, double> MinDistAngle();
-
 
   /// @brief Getter for coordinates
   ///
@@ -53,9 +51,31 @@ public:
 
 
 
+/* Added 11/05/2024 */
+
+  /// @brief Count number of readings belonging to objects
+  /// @return the number of laser readings that are NOT at infinity, nan or max range
+  unsigned int countObjectReadings();
+
+  /// @brief Count number of high intensity segments
+  /// @return the number of segments in the current laser scan
+  unsigned int countSegments();
+
 private:
     //! Stores the laser scan data
     sensor_msgs::LaserScan laserScan_;
+
+    /* Added 11/05/2024 */
+
+    /// @brief Returns the cartesian position of laser reading at specific index
+    /// @param[in] index - index of the laser reading
+    /// @return position cartesian values
+    std::pair<double, double> polarToCart(int index);
     
+    /// @brief Given two points (only x,y are used), returns the slope slope of the lines connecting them
+    /// @param[in] p1 - first point
+    /// @param[in] p2 - second point
+    /// @return the slope of the line connecting the two points
+    double angleConnectingPoints(std::pair<double, double> p1, std::pair<double, double> p2);
 };
 #endif

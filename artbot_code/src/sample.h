@@ -17,10 +17,9 @@
 #include "tf/transform_datatypes.h"
 #include "geometry_msgs/Pose.h"
 #include "geometry_msgs/PoseArray.h"
-// #include "sensor_msgs/Image.h"
-// #include "sensor_msgs/CameraInfo.h"
 #include "sensor_msgs/LaserScan.h"
 #include "geometry_msgs/Twist.h"
+#include "visualization_msgs/MarkerArray.h"
 
 //We include header of another class we are developing
 #include "laserprocessing.h"
@@ -57,6 +56,28 @@ public:
   /// The data is then used to publish input to move the TurtleBot, causing new data to be generated on its updated position and perspective.
   void seperateThread();
 
+  void laserCallback(const sensor_msgs::LaserScanConstPtr& msg);
+
+  /// @brief Odometry Callback from the world reference of the TurtleBot
+  ///
+  /// @param [in|out] msg nav_msgs::OdometryConstPtr - The odometry message
+  /// @note This function and the declaration are ROS specific
+  // void odomCallback(const nav_msgs::OdometryConstPtr& msg);
+
+  /// @brief Odometry Callback from the world reference of the TurtleBot
+  ///
+  /// @param [in|out] msg nav_msgs::OdometryConstPtr - The odometry message
+  /// @note This function and the declaration are ROS specific
+  void amclCallback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg);
+
+  /// @brief Odometry Callback from the world reference of the TurtleBot
+  ///
+  /// @param [in|out] msg nav_msgs::OdometryConstPtr - The odometry message
+  /// @note This function and the declaration are ROS specific
+  void pathCallback(const geometry_msgs::PointConstPtr& msg);
+
+  visualization_msgs::Marker createMarker(geometry_msgs::Point point, bool newSegment);
+
   /// @brief request service callback for starting and stopping the mission and Turtlebot's movement.
   ///
   /// @param [in] req The request, a boolean value where true means the mission is in progress and false stops the mission.
@@ -74,7 +95,7 @@ public:
   /// @return bool - Will return true to indicate the request succeeded.
   bool real(std_srvs::SetBool::Request  &req,
             std_srvs::SetBool::Response &res);
-  
+
   /// @brief Getter for distance to be travelled to reach goal, updates as the platform moves to current goal.
   ///
   /// @param [in] goal a geometry_msgs::Point that is the current goal in x,y,z for the Turtlebot.
@@ -107,32 +128,14 @@ public:
   /// @note This function and the declaration are ROS specific
 
   void CollectGoals();
-
-  void laserCallback(const sensor_msgs::LaserScanConstPtr& msg);
-
-  /// @brief Odometry Callback from the world reference of the TurtleBot
-  ///
-  /// @param [in|out] msg nav_msgs::OdometryConstPtr - The odometry message
-  /// @note This function and the declaration are ROS specific
-  // void odomCallback(const nav_msgs::OdometryConstPtr& msg);
-
-  /// @brief Odometry Callback from the world reference of the TurtleBot
-  ///
-  /// @param [in|out] msg nav_msgs::OdometryConstPtr - The odometry message
-  /// @note This function and the declaration are ROS specific
-  void amclCallback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg);
-
-  /// @brief Odometry Callback from the world reference of the TurtleBot
-  ///
-  /// @param [in|out] msg nav_msgs::OdometryConstPtr - The odometry message
-  /// @note This function and the declaration are ROS specific
-  void pathCallback(const geometry_msgs::PointConstPtr& msg);
   
 private:
   //! Node handle for communication
   ros::NodeHandle nh_;
   //! Driving command publisher
   ros::Publisher pubDrive_;
+  //! Driving command publisher
+  ros::Publisher pubVis_;
   //! Laser scan subscriber, uses LaserCallback
   ros::Subscriber sub1_;
   //! Robot odometry subscriber, uses OdomCallback
@@ -199,6 +202,9 @@ private:
   const double ROBOT_WIDTH_ = 0.3;
 
   std::vector<squiggles::ProfilePoint> path_;
+
+  //! Provides the unique ID of the markers
+  unsigned int marker_counter_;
 };
 
 #endif // SAMPLE_H
