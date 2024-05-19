@@ -82,7 +82,7 @@ void Sample::generateRandomGoals()
         //std::cout << "unordered_goals_[ " << i << " ]: {" << start.x << " , " << start.y << "}." << std::endl; 
         if(i==0)
         {
-            start.x = 0.0; start.y = 0.0; // as starting point is always (0,0)
+            start.x = robotPose_.position.x; start.y = robotPose_.position.x; // as starting point is always (0,0)
             end = unordered_goals_[i].pose.position;
         }
         else
@@ -129,11 +129,11 @@ void Sample::publishPath(std::vector<geometry_msgs::Point> vec_of_simplified_way
    for (const auto &point : vec_of_simplified_waypts)
     {
         custompath_pub_.publish(point);
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     }
     // wait half a sec
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
 
@@ -158,7 +158,7 @@ std::vector<geometry_msgs::Point> Sample::planBetweenTwoGoals(geometry_msgs::Poi
         if (!srv.response.plan.poses.empty())
         {
             ROS_INFO("Plan received with %ld poses", srv.response.plan.poses.size());
-            for (size_t i = 0; i < srv.response.plan.poses.size(); i += 5)
+            for (size_t i = 0; i < srv.response.plan.poses.size(); i += 10)
             {   
                 points.push_back(srv.response.plan.poses[i].pose.position);
                 double x = srv.response.plan.poses[i].pose.position.x;

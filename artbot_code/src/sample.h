@@ -76,7 +76,7 @@ public:
   /// @note This function and the declaration are ROS specific
   void pathCallback(const geometry_msgs::PointConstPtr& msg);
 
-  visualization_msgs::Marker createMarker(geometry_msgs::Point point, bool newSegment);
+  visualization_msgs::Marker createMarker(geometry_msgs::Point point, double r, double g, double b);
 
   /// @brief request service callback for starting and stopping the mission and Turtlebot's movement.
   ///
@@ -127,9 +127,17 @@ public:
   /// @param [in|out] msg sensor_msgs::LaserScanConstPtr - the laser scan data
   /// @note This function and the declaration are ROS specific
 
+  void GenerateSpline();
+
   void CollectGoals();
 
   double GetGoalOrientation(std::vector<geometry_msgs::Point> goals, geometry_msgs::Pose robot);
+
+  geometry_msgs::Point FindLookaheadPoint();
+
+  double computeCurvature(geometry_msgs::Point goal, geometry_msgs::Pose robot);
+
+  double SmoothVel(unsigned int idx);
   
 private:
   //! Node handle for communication
@@ -181,9 +189,9 @@ private:
   // double STOP_DISTANCE_ = 0.34;
   double STOP_DISTANCE_ = 0.24;
 
-  double GOAL_DISTANCE_ = 0.15;
+  double GOAL_DISTANCE_ = 0.1;
   //! Boolean for stopping the TurtleBot when it becomes too close to the guiding TurtleBot
-  double STEERING_SENS_ = 0.5;
+  double STEERING_SENS_ = 0.8;
   
   bool tooClose_;
 
@@ -198,8 +206,8 @@ private:
   double DBL_MAX_ = 1.7976931348623157E+308;
 
   const double MAX_VEL = 0.26;   // in meters per second
-  const double MAX_ACCEL = 3.0; // in meters per second per second
-  const double MAX_JERK = 6.0;  // in meters per second per second per second
+  const double MAX_ACCEL = 0.43; // in meters per second per second
+  const double MAX_JERK = 1.0;  // in meters per second per second per second
 
   const double ROBOT_WIDTH_ = 0.3;
 
@@ -207,6 +215,14 @@ private:
 
   //! Provides the unique ID of the markers
   unsigned int marker_counter_;
+
+  int smoothVelIdx_;
+
+  double poseError_;
+
+  double lookahead_dist_ = 0.5;
+
+  int minIdx_;
 };
 
 #endif // SAMPLE_H

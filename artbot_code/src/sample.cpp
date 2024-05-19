@@ -54,6 +54,9 @@ Sample::Sample(ros::NodeHandle nh) :
     
     velIdx_ = 0;
     time_ = 0;
+    smoothVelIdx_ = 0;
+    poseError_ = 0.0;
+    minIdx_ = 0;
 }
 
 // We delete anything that needs removing here specifically
@@ -131,10 +134,10 @@ void Sample::seperateThread() {
             ROS_INFO("Obstacle Range: %f\nObstacle angle: %f", rangeBearing.first, (rangeBearing.second*180/M_PI));
         }
         //Otherwise the robot is not too close
-        else tooClose_ = false;
+        else if(!tooClose_) tooClose_ = false;
         
         // ROS_INFO("Obstacle Range: %f\nObstacle angle: %f", rangeBearing.first, (rangeBearing.second*180/M_PI));
-        tooClose_ = false;
+        // tooClose_ = false;
         
         geometry_msgs::Point fakeMarker;
         fakeMarker.x = 1.0;
@@ -145,8 +148,8 @@ void Sample::seperateThread() {
 
         // for(int i = 0; )
         //We create a marker for the goal
-        visualization_msgs::Marker marker = createMarker(fakeMarker, false);
-        markerArray.markers.push_back(marker); //goal marker is pushed into marker array
+        // visualization_msgs::Marker marker = createMarker(fakeMarker, 0, 1, 0);
+        // markerArray.markers.push_back(marker); //goal marker is pushed into marker array
 
         // goals_ = pathPlanning.GetGoals();
         // CollectGoals();
@@ -160,9 +163,9 @@ void Sample::seperateThread() {
             // double goal_arrayX[ARRAY_SIZE] = {1.0, 2.0, 1.0, 0.0};
             // double goal_arrayY[ARRAY_SIZE] = {1.0, 0.0, -1.0, 0.0};
 
-            double goal_arrayX[ARRAY_SIZE] = {1.0, 1.0, 0.0, 0.0};
-            double goal_arrayY[ARRAY_SIZE] = {0.0, -1.0, -1.0, 0.0};
-            
+            double goal_arrayX[ARRAY_SIZE] = {2.0, 4.0, 6.0, 6.0};
+            double goal_arrayY[ARRAY_SIZE] = {0.0, -2.0, -3.0, -3.0};
+
             for(int i = 0; i+1 < ARRAY_SIZE; i++){
                 geometry_msgs::Point fakeGoal;
                 fakeGoal.x = goal_arrayX[i];
@@ -181,28 +184,39 @@ void Sample::seperateThread() {
                 ROS_INFO_STREAM("***GOAL REACHED***\n");
                 goalIdx_++;
             }
+            if(trajMode_ == 2) GenerateSpline();
+        }
+        
+        // if(!goals_.empty()) goal_ = goals_.at(goalIdx_);
+
+        if(trajMode_ == 2 && path_.empty()){
+            GenerateSpline();
+        }
+        
+        // Calculate pose error
+        if(trajMode_ == 2){
+            geometry_msgs::Point velPose;
+            velPose.x = path_.at(velIdx_).vector.pose.x;
+            velPose.y = path_.at(velIdx_).vector.pose.y;
+            poseError_ = DistanceToGoal(velPose, robotPose_);
+            for(int i = 0; i < path_.size(); i++){
+                geometry_msgs::Point markerPoint;
+                markerPoint.x = path_.at(i).vector.pose.x;
+                markerPoint.y = path_.at(i).vector.pose.y;
+                visualization_msgs::Marker marker = createMarker(markerPoint, 1.0, 0.0, 0.0);
+                markerArray.markers.push_back(marker);
+            }
         }
 
-        if(!goals_.empty()) goal_ = goals_.at(goalIdx_);
-
-        if(trajMode_ == 2 && (path_.empty() || DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_ || velIdx_ == path_.size()-1)){
-            squiggles::Constraints constraints = squiggles::Constraints(MAX_VEL, MAX_ACCEL, MAX_JERK);
-            squiggles::SplineGenerator generator = squiggles::SplineGenerator(
-                constraints,
-                std::make_shared<squiggles::TankModel>(ROBOT_WIDTH_, constraints));
-            path_ = generator.generate({squiggles::Pose(robotPose_.position.x, robotPose_.position.y, tf::getYaw(robotPose_.orientation)),
-                                        squiggles::Pose(goal_.x, goal_.y, GetGoalOrientation(goals_, robotPose_))});
-            time_ = 0.0;
-            velIdx_ = 0;
-            ROS_INFO_STREAM("Path generated");
-        }
+        // if(poseError_ > 0.2) smoothVelIdx_ -= 2;
 
         counter++;
         if(counter == 10 && goal_.x != DBL_MAX_ && goal_.y != DBL_MAX_ && goal_.z != DBL_MAX_){
             ROS_INFO("goal_: (%f, %f)", goal_.x, goal_.y);
             ROS_INFO("Distance: %f", DistanceToGoal(goal_, robotPose_));
             ROS_INFO("GoalIdx: %d", goalIdx_);
-            // ROS_INFO("goals_ size: %ld", goals_.size());
+            ROS_INFO("Pose error: %f", poseError_);
+            ROS_INFO("goals_ size: %ld", goals_.size());
             // if(!goals_.empty()){
             //     for (int i = 0; i < goals_.size()-1; i++){
             //         ROS_INFO("goals_ at %d: (%f, %f)", i, goals_.at(i).x, goals_.at(i).y);
@@ -214,6 +228,7 @@ void Sample::seperateThread() {
         // for(int i = 0; i < goals_.size(); i++){
         //     ROS_INFO("goals_: (%f, %f)", goals_.at(i).x, goals_.at(i).y);
         // }
+        
 
         //Creates the variable for driving the TurtleBot
         geometry_msgs::Twist drive;
@@ -234,6 +249,7 @@ void Sample::seperateThread() {
                 double goal_angle = GetGoalAngle(goal_,robotPose_);
                 // ROS_INFO("steering = %f", fabs(goal_angle));
                 if(fabs(goal_angle) > 0.1){
+                    smoothVelIdx_ = 0;
                     goal_angle = GetGoalAngle(goal_,robotPose_);
                     drive.linear.x = 0.0;
                     drive.linear.y = 0.0;
@@ -244,7 +260,8 @@ void Sample::seperateThread() {
                     // ROS_INFO("steering = %f", drive.angular.z);
                 }
                 else{
-                    drive.linear.x = 0.2;
+                    smoothVelIdx_++;
+                    drive.linear.x = SmoothVel(smoothVelIdx_);
                     drive.linear.y = 0.0;
                     drive.linear.z = 0.0;
                     drive.angular.x = 0.0;
@@ -254,33 +271,19 @@ void Sample::seperateThread() {
                 }
             }
             if(trajMode_ == 2){
-                
-                time_ += 0.1;
-                double timeStamp = path_.at(velIdx_).time;
-                if(time_ > timeStamp && velIdx_ < path_.size()-1) velIdx_++;
-                
-                // ROS_INFO("time: %f, timestamp: %f", time_, timeStamp);
+                geometry_msgs::Point lookaheadPoint = FindLookaheadPoint();
+                double goal_angle = GetGoalAngle(lookaheadPoint,robotPose_);
+                visualization_msgs::Marker marker = createMarker(lookaheadPoint, 0.0, 1.0, 0.0);
+                markerArray.markers.push_back(marker);
 
-                if(counter == 10){
-                    ROS_INFO("time: %f, timestamp: %f", time_, timeStamp);
-                    counter = 0;
-                }
-
-                double v_left = path_.at(velIdx_).wheel_velocities[0];
-                double v_right = path_.at(velIdx_).wheel_velocities[1];
-                // ROS_INFO("V left: %f, V right: %f", v_left, v_right);
-
-                double V = (v_left + v_right) / 2.0;
-                double omega = (v_right - v_left) / ROBOT_WIDTH_;
-                // ROS_INFO("V: %f, omega: %f", V, omega);
-
-                drive.linear.x = V;
+                // smoothVelIdx_++;
+                // drive.linear.x = SmoothVel(smoothVelIdx_);
+                drive.linear.x = 0.2;
                 drive.linear.y = 0.0;
                 drive.linear.z = 0.0;
                 drive.angular.x = 0.0;
                 drive.angular.y = 0.0;
-                drive.angular.z = omega;
-                // ROS_INFO("Drive X: %f, Drive Z: %f", drive.linear.x, drive.angular.z);
+                drive.angular.z = goal_angle;
             }
         }
         //Stops the TurtleBot
@@ -317,7 +320,7 @@ void Sample::seperateThread() {
     }
 }
 
-visualization_msgs::Marker Sample::createMarker(geometry_msgs::Point point, bool newSegment){
+visualization_msgs::Marker Sample::createMarker(geometry_msgs::Point point, double r, double g, double b){
   
   visualization_msgs::Marker marker;
 
@@ -331,15 +334,15 @@ visualization_msgs::Marker Sample::createMarker(geometry_msgs::Point point, bool
   //Unique ID of the marker
   marker.id = marker_counter_++; 
 
-  marker.type = visualization_msgs::Marker::CUBE;
+  marker.type = visualization_msgs::Marker::CYLINDER;
   // Set the scale of the marker
-  marker.scale.x = 0.5;
-  marker.scale.y = 0.5;
-  marker.scale.z = 0.5;
+  marker.scale.x = 0.1;
+  marker.scale.y = 0.1;
+  marker.scale.z = 0.1;
   //Colour is r,g,b where each channel of colour is 0-1. This marker is green
-  marker.color.r = 0;
-  marker.color.g = 1;
-  marker.color.b = 0;
+  marker.color.r = r;
+  marker.color.g = g;
+  marker.color.b = b;
 
   // Set the marker action. This will add it to the screen
   marker.action = visualization_msgs::Marker::ADD;
@@ -453,7 +456,8 @@ double Sample::fabs(double x)
     else return x;
 }
 
-void Sample::CollectGoals(){
+void Sample::CollectGoals()
+{
     if(pathData_.x > 0.0 || pathData_.x < 0.0){
         // if(goals_.empty()) goals_.push_back(pathData_);
         // else if(pathData_.x != goals_.back().x &&
@@ -465,7 +469,22 @@ void Sample::CollectGoals(){
     if(!goals_.empty()) goal_ = goals_.at(goalIdx_);
 }
 
-double Sample::GetGoalOrientation(std::vector<geometry_msgs::Point> goals, geometry_msgs::Pose robot){
+void Sample::GenerateSpline(){
+    goal_ = goals_.at(goalIdx_);
+    squiggles::Constraints constraints = squiggles::Constraints(MAX_VEL, MAX_ACCEL, MAX_JERK);
+    squiggles::SplineGenerator generator = squiggles::SplineGenerator(
+        constraints,
+        std::make_shared<squiggles::TankModel>(ROBOT_WIDTH_, constraints));
+    path_ = generator.generate({squiggles::Pose(robotPose_.position.x, robotPose_.position.y, tf::getYaw(robotPose_.orientation)),
+                                squiggles::Pose(goal_.x, goal_.y, GetGoalOrientation(goals_, robotPose_))});
+    time_ = 0.0;
+    velIdx_ = 0;
+    minIdx_ = 0;
+    ROS_INFO_STREAM("Path generated\n");
+}
+
+double Sample::GetGoalOrientation(std::vector<geometry_msgs::Point> goals, geometry_msgs::Pose robot)
+{
     if (goalIdx_ < goals.size()-2){
         geometry_msgs::Point goal = goals.at(goalIdx_+1);
         double angle = GetGoalAngle(goal,robot);
@@ -475,4 +494,36 @@ double Sample::GetGoalOrientation(std::vector<geometry_msgs::Point> goals, geome
         return angle;
     }
     else return 0.0;
+}
+
+geometry_msgs::Point Sample::FindLookaheadPoint() {
+    for (size_t i = minIdx_; i < path_.size() - 1; ++i) {
+        geometry_msgs::Point goal;
+        goal.x = path_.at(i).vector.pose.x;
+        goal.y = path_.at(i).vector.pose.y;
+        
+        if (DistanceToGoal(goal, robotPose_) > lookahead_dist_) {
+            minIdx_ = i;
+            return goal;
+        }
+    }
+
+    // If no valid lookahead point is found, return the last waypoint
+    geometry_msgs::Point back;
+    back.x = path_.back().vector.pose.x;
+    back.y = path_.back().vector.pose.y;
+    return back;
+}
+
+double Sample::computeCurvature(geometry_msgs::Point goal, geometry_msgs::Pose robot)
+{
+    double alpha = GetGoalAngle(goal, robot);
+    double distance = DistanceToGoal(goal, robot);
+    return (2 * std::sin(alpha)) / distance;
+}
+
+double Sample::SmoothVel(unsigned int idx)
+{
+    if(idx*0.01 < 0.26) return idx*0.01;
+    else return 0.26;
 }
