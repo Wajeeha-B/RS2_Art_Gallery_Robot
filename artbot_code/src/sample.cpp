@@ -130,20 +130,20 @@ void Sample::seperateThread() {
         //If the distance is less than the stop distance or more than the max value of an int (an invalid reading) the robot should stop
         if(dist < STOP_DISTANCE_ || dist > 2147483647){
             tooClose_ = true;
-            ROS_INFO_STREAM("TurtleBot is too close to an obstacle!");
-            ROS_INFO("Obstacle Range: %f\nObstacle angle: %f", rangeBearing.first, (rangeBearing.second*180/M_PI));
+            // ROS_INFO_STREAM("TurtleBot is too close to an obstacle!");
+            // ROS_INFO("Obstacle Range: %f\nObstacle angle: %f", rangeBearing.first, (rangeBearing.second*180/M_PI));
         }
         //Otherwise the robot is not too close
         else if(!tooClose_) tooClose_ = false;
         
         // ROS_INFO("Obstacle Range: %f\nObstacle angle: %f", rangeBearing.first, (rangeBearing.second*180/M_PI));
-        // tooClose_ = false;
+        tooClose_ = false;
         
         geometry_msgs::Point fakeMarker;
         fakeMarker.x = 1.0;
         fakeMarker.y = 1.0;
         fakeMarker.z = 0.0;
-        
+
         visualization_msgs::MarkerArray markerArray; //creates the marker array for publishing
 
         // for(int i = 0; )
@@ -152,42 +152,43 @@ void Sample::seperateThread() {
         // markerArray.markers.push_back(marker); //goal marker is pushed into marker array
 
         // goals_ = pathPlanning.GetGoals();
-        // CollectGoals();
+        markerArray = CollectGoals(markerArray);
 
-        if(goal_.x == DBL_MAX_ && goal_.y == DBL_MAX_ && goal_.z == DBL_MAX_){
-            std::vector<geometry_msgs::Point> fakeGoals;
-            // int ARRAY_SIZE = 6;
-            // double goal_arrayX[ARRAY_SIZE] = {2.0, 4.0,  7.0, 10.0,  8.0};
-            // double goal_arrayY[ARRAY_SIZE] = {-2.0, 0.0, 1.0, -1.0, -2.5};
-            int ARRAY_SIZE = 5;
-            // double goal_arrayX[ARRAY_SIZE] = {1.0, 2.0, 1.0, 0.0};
-            // double goal_arrayY[ARRAY_SIZE] = {1.0, 0.0, -1.0, 0.0};
+        // if(goal_.x == DBL_MAX_ && goal_.y == DBL_MAX_ && goal_.z == DBL_MAX_){
+        //     std::vector<geometry_msgs::Point> fakeGoals;
+        //     // int ARRAY_SIZE = 6;
+        //     // double goal_arrayX[ARRAY_SIZE] = {2.0, 4.0,  7.0, 10.0,  8.0};
+        //     // double goal_arrayY[ARRAY_SIZE] = {-2.0, 0.0, 1.0, -1.0, -2.5};
+        //     int ARRAY_SIZE = 5;
+        //     // double goal_arrayX[ARRAY_SIZE] = {1.0, 2.0, 1.0, 0.0};
+        //     // double goal_arrayY[ARRAY_SIZE] = {1.0, 0.0, -1.0, 0.0};
 
-            double goal_arrayX[ARRAY_SIZE] = {2.0, 4.0, 6.0, 6.0};
-            double goal_arrayY[ARRAY_SIZE] = {0.0, -2.0, -3.0, -3.0};
+        //     // double goal_arrayX[ARRAY_SIZE] = {2.0, 4.0, 6.0, 8.0};
+        //     // double goal_arrayY[ARRAY_SIZE] = {0.0, -2.0, -2.5, -2.5};
 
-            for(int i = 0; i+1 < ARRAY_SIZE; i++){
-                geometry_msgs::Point fakeGoal;
-                fakeGoal.x = goal_arrayX[i];
-                fakeGoal.y = goal_arrayY[i];
-                fakeGoals.push_back(fakeGoal);
-            }
-            goals_ = fakeGoals;
-        }
+        //     double goal_arrayX[ARRAY_SIZE] = {0.0, 0.5, 0.0, 2.0};
+        //     double goal_arrayY[ARRAY_SIZE] = {1.5, 0.0, -1.5, -1.5};
+
+        //     for(int i = 0; i+1 < ARRAY_SIZE; i++){
+        //         geometry_msgs::Point fakeGoal;
+        //         fakeGoal.x = goal_arrayX[i];
+        //         fakeGoal.y = goal_arrayY[i];
+        //         fakeGoals.push_back(fakeGoal);
+        //     }
+        //     goals_ = fakeGoals;
+        // }
 
         if(DistanceToGoal(goal_, robotPose_) < GOAL_DISTANCE_) {
-            if(goalIdx_+1 == goals_.size()){
+            if(goalIdx_+1 == goals_.size()){ //if this is the last goal
                 running_ = false;
                 stateChange_ = true;
             }
-            else{
+            else if(goalIdx_+1 < goals_.size()){ //if this isnt the last goal
                 ROS_INFO_STREAM("***GOAL REACHED***\n");
                 goalIdx_++;
             }
-            if(trajMode_ == 2) GenerateSpline();
+            if(trajMode_ == 2 && running_) GenerateSpline(); //generate a spline
         }
-        
-        // if(!goals_.empty()) goal_ = goals_.at(goalIdx_);
 
         if(trajMode_ == 2 && path_.empty()){
             GenerateSpline();
@@ -214,9 +215,9 @@ void Sample::seperateThread() {
         if(counter == 10 && goal_.x != DBL_MAX_ && goal_.y != DBL_MAX_ && goal_.z != DBL_MAX_){
             ROS_INFO("goal_: (%f, %f)", goal_.x, goal_.y);
             ROS_INFO("Distance: %f", DistanceToGoal(goal_, robotPose_));
-            ROS_INFO("GoalIdx: %d", goalIdx_);
+            // ROS_INFO("GoalIdx: %d", goalIdx_);
             ROS_INFO("Pose error: %f", poseError_);
-            ROS_INFO("goals_ size: %ld", goals_.size());
+            // ROS_INFO("goals_ size: %ld", goals_.size());
             // if(!goals_.empty()){
             //     for (int i = 0; i < goals_.size()-1; i++){
             //         ROS_INFO("goals_ at %d: (%f, %f)", i, goals_.at(i).x, goals_.at(i).y);
@@ -278,7 +279,7 @@ void Sample::seperateThread() {
 
                 // smoothVelIdx_++;
                 // drive.linear.x = SmoothVel(smoothVelIdx_);
-                drive.linear.x = 0.2;
+                drive.linear.x = 0.1;
                 drive.linear.y = 0.0;
                 drive.linear.z = 0.0;
                 drive.angular.x = 0.0;
@@ -456,7 +457,7 @@ double Sample::fabs(double x)
     else return x;
 }
 
-void Sample::CollectGoals()
+visualization_msgs::MarkerArray Sample::CollectGoals(visualization_msgs::MarkerArray markerArray)
 {
     if(pathData_.x > 0.0 || pathData_.x < 0.0){
         // if(goals_.empty()) goals_.push_back(pathData_);
@@ -466,7 +467,17 @@ void Sample::CollectGoals()
         if(goals_.empty()||(pathData_ != goals_.back())) goals_.push_back(pathData_);
     }
 
-    if(!goals_.empty()) goal_ = goals_.at(goalIdx_);
+    if(!goals_.empty()){
+        goal_ = goals_.at(goalIdx_);
+        for(int i = 0; i < goals_.size(); i++){
+            geometry_msgs::Point markerPoint;
+            markerPoint.x = goals_.at(i).x;
+            markerPoint.y = goals_.at(i).y;
+            visualization_msgs::Marker marker = createMarker(markerPoint, 1.0, 0.0, 0.0);
+            markerArray.markers.push_back(marker);
+        }
+    }
+    return markerArray;
 }
 
 void Sample::GenerateSpline(){
@@ -488,9 +499,9 @@ double Sample::GetGoalOrientation(std::vector<geometry_msgs::Point> goals, geome
     if (goalIdx_ < goals.size()-2){
         geometry_msgs::Point goal = goals.at(goalIdx_+1);
         double angle = GetGoalAngle(goal,robot);
-        ROS_INFO("goal1: %f, %f)", goals.at(goalIdx_).x, goals.at(goalIdx_).y);
-        ROS_INFO("goal2: %f, %f)", goals.at(goalIdx_+1).x, goals.at(goalIdx_+1).y);
-        ROS_INFO("angle: %f", angle);
+        // ROS_INFO("goal1: %f, %f)", goals.at(goalIdx_).x, goals.at(goalIdx_).y);
+        // ROS_INFO("goal2: %f, %f)", goals.at(goalIdx_+1).x, goals.at(goalIdx_+1).y);
+        // ROS_INFO("angle: %f", angle);
         return angle;
     }
     else return 0.0;

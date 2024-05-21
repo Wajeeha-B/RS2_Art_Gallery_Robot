@@ -129,7 +129,7 @@ public:
 
   void GenerateSpline();
 
-  void CollectGoals();
+  visualization_msgs::MarkerArray CollectGoals(visualization_msgs::MarkerArray markerArray);
 
   double GetGoalOrientation(std::vector<geometry_msgs::Point> goals, geometry_msgs::Pose robot);
 
@@ -195,7 +195,7 @@ private:
   
   bool tooClose_;
 
-  int trajMode_ = 2;
+  int trajMode_ = 1;
 
   int goalIdx_;
 
@@ -220,7 +220,7 @@ private:
 
   double poseError_;
 
-  double lookahead_dist_ = 0.5;
+  double lookahead_dist_ = 0.4;
 
   int minIdx_;
 };
