@@ -20,6 +20,10 @@
 #include "sensor_msgs/LaserScan.h"
 #include "geometry_msgs/Twist.h"
 #include "visualization_msgs/MarkerArray.h"
+#include "nav_msgs/OccupancyGrid.h"
+#include "std_msgs/Header.h"
+#include "nav_msgs/MapMetaData.h"
+#include <nav_msgs/GetPlan.h>
 
 //We include header of another class we are developing
 #include "laserprocessing.h"
@@ -75,6 +79,8 @@ public:
   /// @param [in|out] msg nav_msgs::OdometryConstPtr - The odometry message
   /// @note This function and the declaration are ROS specific
   void pathCallback(const geometry_msgs::PointConstPtr& msg);
+
+  void mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg);
 
   visualization_msgs::Marker createMarker(geometry_msgs::Point point, double r, double g, double b);
 
@@ -138,6 +144,10 @@ public:
   double computeCurvature(geometry_msgs::Point goal, geometry_msgs::Pose robot);
 
   double SmoothVel(unsigned int idx);
+
+  std::vector<geometry_msgs::Point> generateRandomGoals(PathPlanning pathPlanning);
+
+  std::vector<geometry_msgs::Point> planBetweenTwoGoals(PathPlanning pathPlanning, geometry_msgs::Point st, geometry_msgs::Point en);
   
 private:
   //! Node handle for communication
@@ -146,19 +156,27 @@ private:
   ros::Publisher pubDrive_;
   //! Driving command publisher
   ros::Publisher pubVis_;
+  //! Goal publisher 
+  ros::Publisher goal_pub_;
   //! Laser scan subscriber, uses LaserCallback
   ros::Subscriber sub1_;
   //! Robot odometry subscriber, uses OdomCallback
   ros::Subscriber sub2_;
   //! Robot odometry subscriber, uses AmclCallback
-  ros::Subscriber sub3_;
+  // ros::Subscriber sub3_;
+  //! Map subscribe
+  ros::Subscriber sub4_;
   //! Mission service, starts and stops the mission
   ros::ServiceServer service1_;
   //! Mission service, starts and stops the mission
   ros::ServiceServer service2_;
+  //! Make Plan
+  ros::ServiceClient make_plan_;
   
   //! Pointer to Laser Object
   LaserProcessing* laserProcessingPtr_;
+
+  PathPlanning* pathPlanningPtr_;
 
   //! Stores the laser data from the LIDAR scanner
   sensor_msgs::LaserScan laserData_;
@@ -223,6 +241,18 @@ private:
   double lookahead_dist_ = 0.4;
 
   int minIdx_;
+
+  std::mutex mapMtx_;
+  double threshold_distance_;
+  int map_width_;
+  int map_height_;
+  double map_resolution_;
+  double map_origin_x_;
+  double map_origin_y_;
+  std::vector<int8_t> map_data_;
+  double world_x_;
+  double world_y_;
+  std::vector<geometry_msgs::PoseStamped> unordered_goals_;
 };
 
 #endif // SAMPLE_H

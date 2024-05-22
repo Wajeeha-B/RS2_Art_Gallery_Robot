@@ -223,8 +223,6 @@ void Sample::generateRandomGoal()
         // Push goal message into vector
         unordered_goals_.push_back(currentgoal_);
         std::cout << "Goal {" << world_x << " , " << world_y << " } has been pushed into unordered vector." << std::endl;
-
-
 }
 
 bool Sample::isGoalValid(double x, double y)

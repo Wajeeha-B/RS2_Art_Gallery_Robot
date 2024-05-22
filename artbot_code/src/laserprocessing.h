@@ -28,6 +28,8 @@ public:
   /// @param [in] laserScan - laserScan to be processed
   LaserProcessing(sensor_msgs::LaserScan laserScan);
 
+  ~LaserProcessing();
+
 // 'Pass' test declaration
   /// @brief Getter for distance and angle from default pose
   ///

@@ -11,24 +11,30 @@ using std::endl;
 //Default constructor of the sample class
 Sample::Sample(ros::NodeHandle nh) :
     //Setting the default value for some variables
-    nh_(nh), running_(false), real_(true), laserProcessingPtr_(nullptr),
-    tooClose_(false), stateChange_(true), marker_counter_(0)
+    nh_(nh), running_(false), real_(true), laserProcessingPtr_(nullptr), pathPlanningPtr_(nullptr),
+    tooClose_(false), stateChange_(true), marker_counter_(0), world_x_(0.0), world_y_(0.0)
 {
     //Subscribing to the laser sensor
     sub1_ = nh_.subscribe("/scan", 100, &Sample::laserCallback,this);
     //Subscribing to odometry of the robot
     sub2_ = nh_.subscribe("/amcl_pose", 100, &Sample::amclCallback,this);
 
-    sub3_ = nh_.subscribe("/thepath", 10, &Sample::pathCallback,this);
+    // sub3_ = nh_.subscribe("/thepath", 10, &Sample::pathCallback,this);
+
+    sub4_ = nh_.subscribe("/map", 100, &Sample::mapCallback, this);
     //Publishing the driving commands
     pubDrive_ = nh.advertise<geometry_msgs::Twist>("/cmd_vel",3,false);
 
     pubVis_ = nh_.advertise<visualization_msgs::MarkerArray>("visualization_marker",3,false);
 
+    goal_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1);
+
     //Service to enable the robot to start and stop from command line input
     service1_ = nh_.advertiseService("/mission", &Sample::request,this);
 
     service2_ = nh_.advertiseService("/real", &Sample::real,this);
+
+    make_plan_ = nh.serviceClient<nav_msgs::GetPlan>("/move_base/NavfnROS/make_plan");
     
     //Sets the default robotPose_ to 0
     robotPose_.position.x = 0.0;
@@ -64,6 +70,9 @@ Sample::~Sample(){
     if(laserProcessingPtr_ != nullptr){
         delete laserProcessingPtr_;
     }
+    if(pathPlanningPtr_ != nullptr){
+        delete pathPlanningPtr_;
+    }
 }
 
 //A callback for the laser scanner
@@ -95,6 +104,26 @@ void Sample::pathCallback(const geometry_msgs::PointConstPtr& msg)
     pathData_ = *msg; // We store a copy of the LaserScan in laserData_
 }
 
+//A callback for map
+void Sample::mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg)
+{
+    std::unique_lock<std::mutex> lck(mapMtx_);
+     // Parse the map data
+    map_width_ = msg->info.width;
+    //std::cout << "Map Width: " << map_width_ << std::endl;
+    map_height_ = msg->info.height;
+    //std::cout << "Map Height: " << map_height_ << std::endl;
+    map_resolution_ = msg->info.resolution;
+    //std::cout << "Map Resolution: " << map_resolution_ << std::endl;
+    map_origin_x_ = msg->info.origin.position.x;
+    //std::cout << "Map Origin X: " << map_origin_x_ << std::endl;
+    map_origin_y_ = msg->info.origin.position.y;
+    //std::cout << "Map Origin Y: " << map_origin_y_ << std::endl;
+    map_data_ = msg->data;
+    //std::cout << "Map data provided." << std::endl;
+    // Generate a random goal point
+}
+
 void Sample::seperateThread() {
     // Waits for the data to be populated from ROS
     while(laserData_.range_min+laserData_.range_max == 0.0) ROS_INFO_STREAM("Loading...");
@@ -105,12 +134,15 @@ void Sample::seperateThread() {
         //Locks all of the data with mutexes
         std::unique_lock<std::mutex> lck1 (laserDataMtx_);
         std::unique_lock<std::mutex> lck2 (robotPoseMtx_);
-        std::unique_lock<std::mutex> lck3 (pathDataMtx_);
+        // std::unique_lock<std::mutex> lck3 (pathDataMtx_);
+        std::unique_lock<std::mutex> lck3 (mapMtx_);
         
         //Creates the class object and gives the data from the sensors
         LaserProcessing laserProcessing(laserData_);
+        PathPlanning pathPlanning(map_width_, map_height_, map_resolution_, map_origin_x_, map_origin_y_, map_data_, world_x_, world_y_);
 
         //Unlocks all mutexes
+        // lck4.unlock();
         lck3.unlock();
         lck2.unlock();
         lck1.unlock();
@@ -152,7 +184,18 @@ void Sample::seperateThread() {
         // markerArray.markers.push_back(marker); //goal marker is pushed into marker array
 
         // goals_ = pathPlanning.GetGoals();
-        markerArray = CollectGoals(markerArray);
+        // markerArray = CollectGoals(markerArray);
+        if(goals_.empty()) goals_ = generateRandomGoals(pathPlanning);
+        else{
+            for(int i = 0; i < goals_.size(); i++){
+                geometry_msgs::Point markerPoint;
+                markerPoint.x = goals_.at(i).x;
+                markerPoint.y = goals_.at(i).y;
+                visualization_msgs::Marker marker = createMarker(markerPoint, 1.0, 0.0, 0.0);
+                markerArray.markers.push_back(marker);
+            }
+        }
+        goal_ = goals_.at(goalIdx_);
 
         // if(goal_.x == DBL_MAX_ && goal_.y == DBL_MAX_ && goal_.z == DBL_MAX_){
         //     std::vector<geometry_msgs::Point> fakeGoals;
@@ -537,4 +580,115 @@ double Sample::SmoothVel(unsigned int idx)
 {
     if(idx*0.01 < 0.26) return idx*0.01;
     else return 0.26;
+}
+
+std::vector<geometry_msgs::Point> Sample::generateRandomGoals(PathPlanning pathPlanning)
+{
+    // unordered_goals_.clear();
+    //PathPlanning.getGoals();
+    
+    geometry_msgs::Point start;
+    geometry_msgs::Point end;
+    std::vector<geometry_msgs::Point> waypts_simplified; // the vector created by plan between two Goals
+    std::vector<geometry_msgs::Point> combined_waypoints;
+    for (int i=0; i<5; i++)
+    {
+        // push a random goal into the unordered_goals_ vector
+        pathPlanning.generateRandomGoal(unordered_goals_, robotPose_);
+        //start = unordered_goals_[i].pose.position;
+        //std::cout << "unordered_goals_[ " << i << " ]: {" << start.x << " , " << start.y << "}." << std::endl; 
+        if(i==0)
+        {
+            start.x = robotPose_.position.x; start.y = robotPose_.position.x; // as starting point is always (0,0)
+            end = unordered_goals_[i].pose.position;
+        }
+        else
+        {
+            start = unordered_goals_[i-1].pose.position;
+            end = unordered_goals_[i].pose.position;
+        }
+        
+        // for error checking
+        std::cout << "Start set: {" << start.x << " , " << start.y << "}." << std::endl; 
+        std::cout << "End set : {" << end.x << " , " << end.y << "}." << std::endl; 
+        
+        // find simplified path
+        waypts_simplified = planBetweenTwoGoals(pathPlanning, start, end);
+        // publish to rostopic 'thepath'
+        // publishPath(waypts_simplified);
+        std::cout << "Waypoints from Goal " << i << " to Goal " << (i+1) << " published to ROS Topic /thepath." << std::endl;
+        combined_waypoints.insert(combined_waypoints.end(), waypts_simplified.begin(), waypts_simplified.end());
+    }
+    return combined_waypoints;
+            
+  
+        // // making vector of point msgs from start and end
+ 
+
+
+
+    //  ADD TRAVELLING SALESMAN 
+
+        // geometry_msgs::PoseStamped goal_msg;
+        // goal_msg.pose.position.x = goal_point.x; // Set the goal position x-coordinate
+        // goal_msg.pose.position.y = goal_point.y; // Set the goal position y-coordinate
+        // goal_msg.pose.orientation.w = 1.0;
+        // goal_msg.header.stamp = ros::Time::now();
+        // goal_msg.header.frame_id = "map";
+        // //std::cout << "Goal about to be published." << std::endl;
+        // goal_pub_.publish(goal_msg);
+        // std::cout << "Goal published." << std::endl;
+
+}
+
+std::vector<geometry_msgs::Point> Sample::planBetweenTwoGoals(PathPlanning pathPlanning, geometry_msgs::Point st, geometry_msgs::Point en)
+{
+    std::vector<geometry_msgs::Point> points;
+  // Create a request message for the service
+    nav_msgs::GetPlan srv;
+    srv.request.start.header.frame_id = "map";
+    srv.request.start.pose.position.x = st.x;
+    srv.request.start.pose.position.y = st.y;
+    srv.request.start.pose.orientation.w = 1.0;
+
+    srv.request.goal.header.frame_id = "map";
+    srv.request.goal.pose.position.x = en.x;
+    srv.request.goal.pose.position.y = en.y;
+    srv.request.goal.pose.orientation.w = 1.0;
+
+    // Call the service - the statement within the if() calls the service with srv
+    if (make_plan_.call(srv)) {
+        if (!srv.response.plan.poses.empty())
+        {
+            ROS_INFO("Plan received with %ld poses", srv.response.plan.poses.size());
+            for (size_t i = 0; i < srv.response.plan.poses.size(); i += 10) // get every 10 points
+            {   
+                points.push_back(srv.response.plan.poses[i].pose.position);
+                double x = srv.response.plan.poses[i].pose.position.x;
+                double y = srv.response.plan.poses[i].pose.position.y;
+                //std::cout << "Position: (" << x << " , " << y << ")." << std::endl; 
+            }
+            // if last point is not end point / goal
+            if(!(points.back()==en))
+            {
+                //std::cout << "Since point vector doesn't have end goal as last point, pushing it back." << std::endl; 
+                points.push_back(en);
+                //std::cout << "Position: (" << en.x << " , " << en.y << ")." << std::endl; 
+            }
+
+        } 
+        else 
+        {
+            ROS_WARN("Received an empty plan so removing last random goal. Generating new goal...");
+            unordered_goals_.pop_back();
+            pathPlanning.generateRandomGoal(unordered_goals_, robotPose_);
+        }
+    } 
+    else
+    {
+        ROS_ERROR("Failed to call service make_plan");
+    }
+
+    std::cout << "Number of elements in the simplified points vector is: " << points.size() << std::endl;
+    return points;
 }

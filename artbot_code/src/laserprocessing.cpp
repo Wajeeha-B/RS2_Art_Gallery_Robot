@@ -12,6 +12,10 @@ LaserProcessing::LaserProcessing(sensor_msgs::LaserScan laserScan):
         
     }
 
+LaserProcessing::~LaserProcessing(){
+
+}
+
 // Min Distance and Angle implementation
 std::pair<double, double> LaserProcessing::MinDistAngle() {
     std::pair<double, double> distAngle;
