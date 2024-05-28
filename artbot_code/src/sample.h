@@ -139,7 +139,7 @@ public:
 
   double GetGoalOrientation(std::vector<geometry_msgs::Point> goals, geometry_msgs::Pose robot);
 
-  geometry_msgs::Point FindLookaheadPoint();
+  geometry_msgs::Point FindLookaheadPoint(std::vector<geometry_msgs::Point> goals);
 
   double computeCurvature(geometry_msgs::Point goal, geometry_msgs::Pose robot);
 
@@ -163,7 +163,7 @@ private:
   //! Robot odometry subscriber, uses OdomCallback
   ros::Subscriber sub2_;
   //! Robot odometry subscriber, uses AmclCallback
-  // ros::Subscriber sub3_;
+  ros::Subscriber sub3_;
   //! Map subscribe
   ros::Subscriber sub4_;
   //! Mission service, starts and stops the mission

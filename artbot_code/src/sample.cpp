@@ -19,7 +19,7 @@ Sample::Sample(ros::NodeHandle nh) :
     //Subscribing to odometry of the robot
     sub2_ = nh_.subscribe("/amcl_pose", 100, &Sample::amclCallback,this);
 
-    // sub3_ = nh_.subscribe("/thepath", 10, &Sample::pathCallback,this);
+    sub3_ = nh_.subscribe("/thepath", 10, &Sample::pathCallback,this);
 
     sub4_ = nh_.subscribe("/map", 100, &Sample::mapCallback, this);
     //Publishing the driving commands
@@ -259,7 +259,7 @@ void Sample::seperateThread() {
             ROS_INFO("goal_: (%f, %f)", goal_.x, goal_.y);
             ROS_INFO("Distance: %f", DistanceToGoal(goal_, robotPose_));
             // ROS_INFO("GoalIdx: %d", goalIdx_);
-            ROS_INFO("Pose error: %f", poseError_);
+            // ROS_INFO("Pose error: %f", poseError_);
             // ROS_INFO("goals_ size: %ld", goals_.size());
             // if(!goals_.empty()){
             //     for (int i = 0; i < goals_.size()-1; i++){
@@ -290,11 +290,19 @@ void Sample::seperateThread() {
             drive.angular.z = 0.0;
 
             if(trajMode_ == 1){
-                double goal_angle = GetGoalAngle(goal_,robotPose_);
+                geometry_msgs::Point lookaheadPoint = FindLookaheadPoint(goals_);
+                double goal_angle = GetGoalAngle(lookaheadPoint,robotPose_);
+                visualization_msgs::Marker marker = createMarker(lookaheadPoint, 0.0, 1.0, 0.0);
+                markerArray.markers.push_back(marker);
+                
+                // ROS_INFO("steering = %f", goal_angle);
+                // ROS_INFO("smoothVelIdx = %d", smoothVelIdx_);
+
+                // double goal_angle = GetGoalAngle(goal_,robotPose_);
                 // ROS_INFO("steering = %f", fabs(goal_angle));
                 if(fabs(goal_angle) > 0.1){
                     smoothVelIdx_ = 0;
-                    goal_angle = GetGoalAngle(goal_,robotPose_);
+                    // goal_angle = GetGoalAngle(goal_,robotPose_);
                     drive.linear.x = 0.0;
                     drive.linear.y = 0.0;
                     drive.linear.z = 0.0;
@@ -315,7 +323,12 @@ void Sample::seperateThread() {
                 }
             }
             if(trajMode_ == 2){
-                geometry_msgs::Point lookaheadPoint = FindLookaheadPoint();
+                std::vector<geometry_msgs::Point> goals;
+                for(int i = 0; i < path_.size(); i++){
+                    goals.at(i).x = path_.at(i).vector.pose.x;
+                    goals.at(i).y = path_.at(i).vector.pose.y;
+                }
+                geometry_msgs::Point lookaheadPoint = FindLookaheadPoint(goals);
                 double goal_angle = GetGoalAngle(lookaheadPoint,robotPose_);
                 visualization_msgs::Marker marker = createMarker(lookaheadPoint, 0.0, 1.0, 0.0);
                 markerArray.markers.push_back(marker);
@@ -441,7 +454,7 @@ bool Sample::request(std_srvs::SetBool::Request  &req,
 //Communicate with this service using 
 //rosservice call /mission "data: true"
 bool Sample::real(std_srvs::SetBool::Request  &req,
-                     std_srvs::SetBool::Response &res)
+                  std_srvs::SetBool::Response &res)
 {  
     //If the request is true, start the mission
     if(req.data)
@@ -550,11 +563,13 @@ double Sample::GetGoalOrientation(std::vector<geometry_msgs::Point> goals, geome
     else return 0.0;
 }
 
-geometry_msgs::Point Sample::FindLookaheadPoint() {
-    for (size_t i = minIdx_; i < path_.size() - 1; ++i) {
+geometry_msgs::Point Sample::FindLookaheadPoint(std::vector<geometry_msgs::Point> goals)
+{
+    for (size_t i = minIdx_; i < goals.size() - 1; i++) {
         geometry_msgs::Point goal;
-        goal.x = path_.at(i).vector.pose.x;
-        goal.y = path_.at(i).vector.pose.y;
+        goal.x = goals.at(i).x;
+        goal.y = goals.at(i).y;
+        goalIdx_ = i;
         
         if (DistanceToGoal(goal, robotPose_) > lookahead_dist_) {
             minIdx_ = i;
@@ -564,8 +579,9 @@ geometry_msgs::Point Sample::FindLookaheadPoint() {
 
     // If no valid lookahead point is found, return the last waypoint
     geometry_msgs::Point back;
-    back.x = path_.back().vector.pose.x;
-    back.y = path_.back().vector.pose.y;
+    back.x = goals.back().x;
+    back.y = goals.back().y;
+    goalIdx_ = goals.size() - 1;
     return back;
 }
 
