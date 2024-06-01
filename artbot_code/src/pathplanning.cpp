@@ -66,6 +66,17 @@ bool PathPlanning::isGoalValid(double x, double y, std::vector<geometry_msgs::Po
     // Check if the goal point is a threshold distance away from obstacles
         //int map_x = (x - map_origin_x_) / map_resolution_;
         //int map_y = (y - map_origin_y_) / map_resolution_;
+
+    // // Convert world coordinates to map indices
+    // int map_x = (x - map_origin_x_) / map_resolution_;
+    // int map_y = (y - map_origin_y_) / map_resolution_;
+    
+    // // Check if the map indices are within the map boundaries
+    // if (map_x < 0 || map_x >= map_width_ || map_y < 0 || map_y >= map_height_)
+    // {
+    //     return false;
+    // }
+
     uint32_t idx = x + y * map_width_;
     // std::cout << "Index is: " << idx << std::endl;
     //int index = map_y * map_width_ + map_x;
@@ -75,7 +86,7 @@ bool PathPlanning::isGoalValid(double x, double y, std::vector<geometry_msgs::Po
         bool freeSpace = false;
         bool neighboursUnoccupied = true; // assume unoccupied 
         bool withinThreshold = false; // TO ADD
-        if(world_x_ >= 0 && world_x_ <= 10 && world_y_ >= -9 && world_y_ <= 0)
+        if(world_x_ >= 0 && world_x_ <= 7 && world_y_ >= -2.5 && world_y_ <= 0)
         {
             withinBounds = true;
         }

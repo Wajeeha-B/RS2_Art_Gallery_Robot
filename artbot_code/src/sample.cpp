@@ -178,6 +178,9 @@ void Sample::seperateThread() {
 
         visualization_msgs::MarkerArray markerArray; //creates the marker array for publishing
 
+        // markerArray = CollectGoals(markerArray);
+        // if(!goals_.empty()) goal_ = goals_.at(goalIdx_);
+
         // for(int i = 0; )
         //We create a marker for the goal
         // visualization_msgs::Marker marker = createMarker(fakeMarker, 0, 1, 0);
@@ -185,6 +188,7 @@ void Sample::seperateThread() {
 
         // goals_ = pathPlanning.GetGoals();
         // markerArray = CollectGoals(markerArray);
+        
         if(goals_.empty()) goals_ = generateRandomGoals(pathPlanning);
         else{
             for(int i = 0; i < goals_.size(); i++){
@@ -196,6 +200,7 @@ void Sample::seperateThread() {
             }
         }
         goal_ = goals_.at(goalIdx_);
+
 
         // if(goal_.x == DBL_MAX_ && goal_.y == DBL_MAX_ && goal_.z == DBL_MAX_){
         //     std::vector<geometry_msgs::Point> fakeGoals;
