@@ -39,9 +39,6 @@ std::pair<double, double> LaserProcessing::MinDistAngle() {
 }
 
 
-
-/* Added 11/05/2024 */
-
 unsigned int LaserProcessing::countObjectReadings()
 {
     // This count will hold the number of object readings
@@ -97,7 +94,9 @@ unsigned int LaserProcessing::countSegments()
 
 std::pair<double, double> LaserProcessing::polarToCart(int index)
 {
+    // This pair will hold the cartesian position of the laser reading at the specific index
     std::pair<double, double> point;
+    // Calculate the x and y coordinates of the laser reading at the specific index
     point.first = laserScan_.ranges[index] * cos(index * laserScan_.angle_increment + laserScan_.angle_min);
     point.second = laserScan_.ranges[index] * sin(index * laserScan_.angle_increment + laserScan_.angle_min);
     return point;
@@ -105,5 +104,6 @@ std::pair<double, double> LaserProcessing::polarToCart(int index)
 
 double LaserProcessing::angleConnectingPoints(std::pair<double, double> p1, std::pair<double, double> p2)
 {
+    // Return the angle between the two points
     return atan2(p2.second - p1.second, p2.first - p1.first);
 }
