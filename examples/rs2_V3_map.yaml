@@ -1,4 +1,4 @@
-image: /home/stmn8r/catkin_ws/src/rs2_art_gallery_robot/examples/rs2_V3_map.pgm
+image: /home/ashton/catkin_ws/src/rs2_art_gallery_robot/examples/rs2_V3_map.pgm
 resolution: 0.050000
 origin: [-10.000000, -21.200000, 0.000000]  # can change y=-21.200000 to y = -10.00000
 negate: 0

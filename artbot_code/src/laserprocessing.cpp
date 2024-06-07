@@ -22,11 +22,12 @@ std::pair<double, double> LaserProcessing::MinDistAngle() {
     double minElement = laserScan_.ranges[0];
 
     // This will hold the index of the minimum element
+
     int minIndex = 0;
 
 // Iterate through the ranges to find the minimum element
     for (int i = 1; i < laserScan_.ranges.size(); i++) {
-        if (laserScan_.ranges[i] < minElement) {
+        if (laserScan_.ranges[i] < minElement && laserScan_.ranges[i] > 0.001) {
             minElement = laserScan_.ranges[i];
             minIndex = i;
         }
@@ -37,7 +38,6 @@ std::pair<double, double> LaserProcessing::MinDistAngle() {
     distAngle.second = (minIndex * laserScan_.angle_increment + laserScan_.angle_min) * (180.0 / M_PI); // To convert to degrees
     return distAngle;
 }
-
 
 unsigned int LaserProcessing::countObjectReadings()
 {
@@ -97,6 +97,7 @@ std::pair<double, double> LaserProcessing::polarToCart(int index)
     // This pair will hold the cartesian position of the laser reading at the specific index
     std::pair<double, double> point;
     // Calculate the x and y coordinates of the laser reading at the specific index
+
     point.first = laserScan_.ranges[index] * cos(index * laserScan_.angle_increment + laserScan_.angle_min);
     point.second = laserScan_.ranges[index] * sin(index * laserScan_.angle_increment + laserScan_.angle_min);
     return point;

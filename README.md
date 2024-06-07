@@ -18,7 +18,7 @@ e.g. rs2_gazebo
 
 ### Terminal 2
     export TURTLEBOT3_MODEL=waffle
-    roslaunch turtlebot3_navigation turtlebot3_navigation.launch map_file:=$HOME/catkin_ws/src/     rs2_art_gallery_robot/examples/rs2_V3_map.yaml
+    roslaunch turtlebot3_navigation turtlebot3_navigation.launch map_file:=$HOME/catkin_ws/src/rs2_art_gallery_robot/examples/rs2_V3_map.yaml
 
 ### Terminal 3
     export TURTLEBOT3_MODEL=waffle
@@ -57,3 +57,15 @@ e.g. rs2_gazebo
 ## Gmapping command
      Run this command alongside the TERMINAL 1 and TERMINAL 3 commands from 'Launching the Simulation'
      roslaunch turtlebot3_slam turtlebot3_slam.launch slam_methods:=gmapping
+     
+# Path Planning
+	catkin_make
+### Terminal 1
+	roslaunch rs2_gazebo_world turtlebot3_marker_ver7.launch
+### Terminal 2
+	roslaunch turtlebot3_navigation turtlebot3_navigation.launch map_file:=$HOME/catkin_ws/src/rs2_art_gallery_robot/examples/rs2_V3_map.yaml
+### Terminal 3 - preferably detach window so you can see waypoints and command outputs
+	rostopic echo /thepath
+### Terminal 4 
+     rosrun subsystem_ppintg subsystem_ppintg_test
+Once the above node is run, waypoints in the form of geometry_msgs::Point are published to the rostopic '/thepath'.  

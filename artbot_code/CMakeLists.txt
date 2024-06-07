@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.0.2)
+# cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.10)
 project(artbot_code)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -21,7 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3 REQUIRED)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -Wdeprecated-declarations")
-set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++17 ${CMAKE_CXX_FLAGS}")
 message ( STATUS " CMake C++ FLAGS ${CMAKE_CXX_FLAGS}")
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -131,6 +132,7 @@ include_directories(
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME} src/laserprocessing.cpp src/pathplanning.cpp) # base class
+# add_library(${PROJECT_NAME} src/laserprocessing.cpp src/pathplanning.cpp) # base class
 #   src/${PROJECT_NAME}/artbot_code.cpp
 # )
 
@@ -156,9 +158,17 @@ add_executable(${PROJECT_NAME}_node src/main.cpp src/sample.cpp)
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(${PROJECT_NAME}_node
-target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${PROJECT_NAME} squiggles)
+# target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${PROJECT_NAME})
 #   ${catkin_LIBRARIES}
 # )
+
+# Add the cloned repository as a subdirectory
+# add_subdirectory(../robotsquiggles-1.1.1/main/src robotsquiggles_build)
+add_subdirectory(../robotsquiggles-1.1.1 robotsquiggles_build)
+
+# Include the directory with the repository's headers
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../robotsquiggles-1.1.1/main/include)
 
 #############
 ## Install ##

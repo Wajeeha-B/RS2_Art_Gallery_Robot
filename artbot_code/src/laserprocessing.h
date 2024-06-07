@@ -41,6 +41,17 @@ public:
   /// @return the number of laser readings that are NOT at infinity, nan or max range
   unsigned int countObjectReadings();
 
+
+  /// @brief Count number of high intensity segments
+  /// @return the number of segments in the current laser scan
+  unsigned int countSegments();
+
+/* Added 11/05/2024 */
+
+  /// @brief Count number of readings belonging to objects
+  /// @return the number of laser readings that are NOT at infinity, nan or max range
+  unsigned int countObjectReadings();
+
   /// @brief Count number of high intensity segments
   /// @return the number of segments in the current laser scan
   unsigned int countSegments();
