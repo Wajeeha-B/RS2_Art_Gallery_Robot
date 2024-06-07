@@ -12,16 +12,20 @@ LaserProcessing::LaserProcessing(sensor_msgs::LaserScan laserScan):
         
     }
 
-LaserProcessing::~LaserProcessing(){
+// //Getter for distance and angle to the nearest obstacle
 
-}
-
-// Min Distance and Angle implementation
 std::pair<double, double> LaserProcessing::MinDistAngle() {
+    // This pair will hold the distance and angle to the nearest obstacle
     std::pair<double, double> distAngle;
-    double minElement = laserScan_.range_max;
+
+    // This will hold the minimum element in the ranges
+    double minElement = laserScan_.ranges[0];
+
+    // This will hold the index of the minimum element
+
     int minIndex = 0;
 
+// Iterate through the ranges to find the minimum element
     for (int i = 1; i < laserScan_.ranges.size(); i++) {
         if (laserScan_.ranges[i] < minElement && laserScan_.ranges[i] > 0.001) {
             minElement = laserScan_.ranges[i];
@@ -29,11 +33,11 @@ std::pair<double, double> LaserProcessing::MinDistAngle() {
         }
     }
 
-    distAngle.first = minElement;
-    distAngle.second = minIndex * laserScan_.angle_increment + laserScan_.angle_min;
+// Assign the minimum distance and angle to the pair
+    distAngle.first = minElement * 1000; // To convert to mm
+    distAngle.second = (minIndex * laserScan_.angle_increment + laserScan_.angle_min) * (180.0 / M_PI); // To convert to degrees
     return distAngle;
 }
-/* Added 11/05/2024 */
 
 unsigned int LaserProcessing::countObjectReadings()
 {
@@ -86,12 +90,14 @@ unsigned int LaserProcessing::countSegments()
     // return the number of segments.
     return count;
     }
-    return 0;
 }
 
 std::pair<double, double> LaserProcessing::polarToCart(int index)
 {
+    // This pair will hold the cartesian position of the laser reading at the specific index
     std::pair<double, double> point;
+    // Calculate the x and y coordinates of the laser reading at the specific index
+
     point.first = laserScan_.ranges[index] * cos(index * laserScan_.angle_increment + laserScan_.angle_min);
     point.second = laserScan_.ranges[index] * sin(index * laserScan_.angle_increment + laserScan_.angle_min);
     return point;
@@ -99,5 +105,6 @@ std::pair<double, double> LaserProcessing::polarToCart(int index)
 
 double LaserProcessing::angleConnectingPoints(std::pair<double, double> p1, std::pair<double, double> p2)
 {
+    // Return the angle between the two points
     return atan2(p2.second - p1.second, p2.first - p1.first);
 }
